@@ -1,0 +1,266 @@
+
+
+
+SerialProtocol
+
+  p = SerialProtocolBase()
+  s = Serial(ttyUSB0)
+  
+  p->init();
+  
+#define HEADER 0xF0C4
+#define HEADER_OFFSET 2
+#define DATID_OFFSET  (HEADER_OFFSET+1)
+#define VERSION_OFFSET  (DATID_OFFSET+1)
+#define DEVID_OFFSET  (VERSION_OFFSET+1)  // check this with Risto
+#define SDSC_OFFSET (DEVID_OFFSET+1)
+#define SDSC_SIZE 4
+#define CONF_MIN_LEN  (SDSC_OFFSET+1)
+
+#define MAX_KNOWN_VERSION 1
+
+namespace agni_serial_protocol
+{
+
+class SerialProtocolBase
+{
+  SerialProtocolBase::init()
+  {
+    config();
+  }
+
+  SerialProtocolBase::config()
+  {
+    // request config
+    send_buf_len = p->gen_master_config_req(send_buf);
+    s->send(send_buf, send_buf_len);
+    // wait for answer
+    s->wait_for_answer(timeout)
+    // read beginning of config message
+    buf_len = serial->read_frame(buf, CONF_MIN_LEN); 
+
+    // read versions
+    version = buf[VERSION_OFFSET];
+    if version > 0 and version <= MAX_KNOWN_VERSION
+      read_device_types();
+      read_sensor_types();
+    else
+      UNSUPPORTED PROTOCOL VERSION
+      error
+
+    // validate master is answering
+    if buf[DATID_OFFSET] != 0x00
+      error
+
+    // create a device
+    if not set_device(buf[DEVID_OFFSET]);
+      error
+    // get how much more config comes
+    config_num = (size_t)buf[SDSC_OFFSET];
+    // read next part of the config message
+    until config_len = config_num * 5 or timeout, do
+      config_len = serial->read_frame(buf+buf_len, config_num * 5);
+    // validate the full frame
+    if(valid_data(buf, config_len + buf_len))
+      init_device_from_config(buf+buf_len, config_num);
+    else
+      error, stop streaming, flush and retry
+  }
+
+  SerialProtocolBase::init_device_from_config(buf, config_num)
+  {
+    for i in config_num
+      config_buf = buf + i * SDSC_SIZE;    
+      sen_id = config_buf[1]*256 + config_buf[0];
+      sen_len = config_buf[3]*256 + config_buf[2];
+        if (exists_sensor(sen_id))
+          d->add_sensor(sen_id, sen_len, sensor_types[sen_id])
+  }
+
+  bool SerialProtocolBase::set_device(dev_id)
+  {
+    if(exists_device(dev_id))
+    {
+      dev.init(dev_id, device_types[dev_id])
+      return true;
+    }
+    else
+      return false;
+  }
+
+  bool SerialProtocolBase::valid_data(buf, buf_len)
+  {
+    return valid_header(buf) && valid_checksum(buf, buf_len);
+  }
+
+  bool SerialProtocolBase::valid_headerbuf(){return buf[0]*256+buf[1] == HEADER};
+  bool SerialProtocolBase::valid_checksum(buf, len){compute_checksum(buf, len-1)!=buf[len-1]};
+  char SerialProtocolBase::compute_checksum(buf, len)
+  {
+    return '0';
+  }
+  
+  SerialProtocolBase::read_device_types()
+  {
+    read params for version
+  }
+  SerialProtocolBase::read_sensor_types()
+  {
+    read params for version
+  }
+
+  bool SerialProtocolBase::exists_device(dev_id)
+  {
+    return dev_id in device_types
+  }
+
+  bool SerialProtocolBase::exists_sensor(sen_id)
+  {
+    return sen_id in sensor_types
+  }
+
+  SerialProtocolBase::get_device(){ return dev; }
+
+  SerialProtocolBase::unpack_data(buf)
+  {
+    valid_header()
+    valid_checksum()
+  }
+
+  size_t SerialProtocolBase::gen_command(buf, destination, command, size, data)
+  {
+    buf += HEADER
+    buf += destination
+    buf += command
+    for size
+      buf += data
+    buf += compute_checksum(buf)
+    return total size
+  }
+
+  size_t SerialProtocolBase::gen_master_config_req(buf)
+  {
+    return gen_command(buf, MASTER, CONFIG, 0)
+  }
+
+  size_t SerialProtocolBase::gen_topo_reg(buf)
+  {
+    return gen_command(buf, TOPO, 0)
+  }
+
+  size_t SerialProtocolBase::gen_serialnum_req()
+  {
+    return gen_command(buf, SERIAL, 0)
+  }
+
+  protected:
+    unsigned int version;
+    serialPtr s;
+    Device dev;
+}
+
+struct DeviceType
+{
+  unsigned int id;
+  std::string name;
+  std::string description;
+}
+
+struct SensorType
+{
+  unsigned int id;
+  std::string name;
+  std::string description;
+  std::string parser_library;
+}
+
+class Device
+{
+  Device::Device()
+  Device::init(dev_id, DeviceType dev_type)
+  {
+    id = dev_id;
+    device = dev_type;
+  }
+  
+  Device::~Device()
+  {
+    for each sensors
+      delete sensors;
+  }
+
+  std::string Device::get_serial()
+  {
+    return serialnum;
+  }
+
+  std::vector<Sensor> Device::get_sensors(return sensors);
+  Device::get_sensor_by_uid();
+  
+  void Device::add_sensor(data_len, sensor_type)
+  {
+    // use pluginlib for sensor
+    Sensor *sensor = new Sensor(data_len, sensor_type);
+    if (sensor)
+      if (sensor->init())
+        sensors.push_back(sensor);
+      else
+        delete sensor
+  }
+
+  Device::process_data(buf)
+  {
+    for each sensors
+      sensor[i].parse(sen_buf, msg);
+  }
+
+protected:
+  std::vector<Sensor*>  sensors;
+  std::string serialnum;
+}
+
+
+class SensorBase
+{
+  SensorBase::SensorBase(data_len, sensor_type)
+  {
+    sensor = sensor_type;
+    data_len = sen_len;
+  }
+  
+  SensorBase::~SensorBase()
+  {
+    // unregister the plugin
+  }
+
+  SensorType sensor;
+  unsigned int len;
+
+  bool SensorBase::init()
+  {
+     parsers
+    // instantiate the parser according to the sensor_type
+  }
+
+  SensorBase::parse()
+  {
+  }
+  
+  void* SensorBase::get_data()
+  {
+    return dataptr;
+  }
+  
+  void* dataptr;
+  
+}
+
+
+
+class ParserBase
+{
+  unsigned int ID=Sensor+ChipID;
+  parse()
+}
+
+}
