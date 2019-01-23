@@ -165,6 +165,7 @@ public:
   bool get_data_as_float(float &val, unsigned int did);
   bool get_data_as_short(short &val, unsigned int did);
   bool get_data_as_unsigned_short(unsigned short &val, unsigned int did);
+  bool get_data_as_3_float(float &x, float &y, float &z, unsigned int did);
   
   unsigned int get_timestamp(unsigned int did);
   void trigger(const unsigned int mode, const unsigned int sen_id);

@@ -55,6 +55,9 @@ SensorFactory::SensorFactory()
 {
   Register("undefined", &Sensor_Default::Create);
   Register("MPU9250", &Sensor_IMU_MPU9250::Create);
+  Register("MPU9250_accelerometer", &Sensor_IMU_MPU9250_Acc::Create);
+  
+  
 }
 
 void SensorFactory::Register(const std::string & sensor_name, CreateSensorFn fnCreate)
@@ -729,8 +732,32 @@ bool SerialProtocolBase::get_data_as_float(float &val, unsigned int did)
   std::pair<SensorBase*, bool> *sensor = dev.get_sensor_by_idx(did);
   if (sensor)
   {
-    val = *((float*)sensor->first->get_data());
-    return true;
+    if(sensor->first->get_len() >=4)
+    {
+      val = *((float*)sensor->first->get_data());
+      return true;
+    }
+  }
+  return false;
+}
+
+bool SerialProtocolBase::get_data_as_3_float(float &x, float &y, float &z, unsigned int did)
+{
+  // check sensor existence
+  std::pair<SensorBase*, bool> *sensor = dev.get_sensor_by_idx(did);
+  if (sensor)
+  {
+    if(sensor->first->get_len() >=12)
+    {
+      uint8_t* buf = (uint8_t*)sensor->first->get_data();
+      if (buf)
+      {
+        memcpy(&x, buf, sizeof(float));
+        memcpy(&y, buf+4, sizeof(float));
+        memcpy(&z, buf+8, sizeof(float));
+        return true;
+      }
+    }
   }
   return false;
 }
