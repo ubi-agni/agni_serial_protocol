@@ -1,5 +1,6 @@
 #include "serial_protocol.h"
 #include "registered_sensors_impl.h"
+#include "yaml-cpp/yaml.h"
 #include <exception>
 #include <stdexcept>
 #include <cstring>
@@ -53,7 +54,7 @@ void SensorBase::extract_timestamp(uint8_t *buf)
 SensorFactory::SensorFactory()
 {
   Register("undefined", &Sensor_Default::Create);
-  Register("MP9250", &Sensor_IMU_MPU9250::Create);
+  Register("MPU9250", &Sensor_IMU_MPU9250::Create);
 }
 
 void SensorFactory::Register(const std::string & sensor_name, CreateSensorFn fnCreate)
@@ -100,7 +101,7 @@ std::string Device::get_serial()
 std::pair<SensorBase*, bool> *Device::get_sensor_by_idx(size_t idx)
 {
   int sensor_idx = idx - 1;
-  if (sensor_idx >= 0 && sensor_idx < sensors.size())
+  if (sensor_idx >= 0 && sensor_idx < (int)sensors.size())
     return &sensors[sensor_idx];
   else
     return NULL;
@@ -145,8 +146,10 @@ void Device::process_data(uint8_t *buf, size_t len)
 /* *********************** */
 
 
-SerialProtocolBase::SerialProtocolBase(SerialCom *serial_com) :
-  streaming(false), s(serial_com), verbose(false)
+SerialProtocolBase::SerialProtocolBase(SerialCom *serial_com, 
+  const std::string device_filename, const std::string sensor_filename) :
+  verbose(false), streaming(false), s(serial_com), d_filename(device_filename),
+  s_filename(sensor_filename)
 {
 }
 
@@ -248,10 +251,73 @@ uint8_t SerialProtocolBase::compute_checksum(uint8_t* buf, size_t len)
   return xorsum;
 }
 
-void SerialProtocolBase::read_device_types(std::string filename)
+void SerialProtocolBase::read_device_types(const unsigned int v)
 {
-  //read params for version
-  // hardcoded for now
+  //read params for given version
+  if (d_filename != "")
+  {
+    if (verbose)
+      std::cout << "sp: reading device_types from " << d_filename << std::endl;
+    //bool success = false;
+    YAML::Node root = YAML::LoadFile(d_filename);
+    if (root["agni_serial_protocol"])
+    {
+      YAML::Node agni_serial_protocol = root["agni_serial_protocol"];
+      for(YAML::iterator it=agni_serial_protocol.begin(); it!=agni_serial_protocol.end(); ++it)
+      {
+        //std::string protocol_version_str = it->first.as<std::string>();
+        // std::string protocol_version_str = 
+        unsigned int protocol_version = it->first.as<unsigned int>();
+        if (verbose)
+          std::cout << "sp: found specs for version " <<  protocol_version << "\n";
+        const YAML::Node& version_node = it->second;
+        if (verbose)
+          std::cout << "sp: extract version\n";
+        if (version_node["device_types"])
+        {
+          if (v == protocol_version)
+          {
+            YAML::Node device_types_node = version_node["device_types"];
+            if (verbose)
+              std::cout << "sp: found specs for device_types \n";
+            for(YAML::const_iterator devit=device_types_node.begin();devit!=device_types_node.end();++devit)
+            {
+              YAML::Node device_types_item = *devit;//->second;
+              if (verbose)
+                std::cout << "sp: extract device_type item ";
+              DeviceType dt;
+              std::stringstream sstr("");
+              sstr << std::hex << device_types_item["type"].as<std::string>();
+              sstr >> dt.id;
+              dt.name = device_types_item["name"].as<std::string>();
+              if (verbose)
+                std::cout << dt.id <<" named: " << dt.name << "\n";
+              dt.description = device_types_item["description"].as<std::string>();
+              device_types[dt.id] = dt;
+            }
+            //success = true;
+            return;
+          }
+          else
+          {
+            std::cerr << "sp: yaml does not contain specs for version " << v << "\n";
+          }
+        }
+        else
+        {
+          std::cerr << "sp: yaml does not contain device_types \n";
+        }
+      }
+    }
+    else
+    {
+      std::cerr << "sp: yaml does not contain agni_serial_protocol \n";
+    }
+  }
+  std::cout << "sp: using default device_types\n";
+
+  // fallback
+
   DeviceType dt;
   dt.id = 0x00;
   dt.name = "undefined";
@@ -264,20 +330,85 @@ void SerialProtocolBase::read_device_types(std::string filename)
   device_types[dt.id] = dt;
 }
 
-void SerialProtocolBase::read_sensor_types(std::string filename)
+void SerialProtocolBase::read_sensor_types(const unsigned int v)
 {
-  //read params for version
+  //read params for given version
+  if (s_filename != "")
+  {
+    if (verbose)
+      std::cout << "sp: reading sensor_types from " << s_filename << std::endl;
+    //bool success = false;
+    YAML::Node root = YAML::LoadFile(s_filename);
+    if (root["agni_serial_protocol"])
+    {
+      YAML::Node agni_serial_protocol = root["agni_serial_protocol"];
+      for(YAML::iterator it=agni_serial_protocol.begin(); it!=agni_serial_protocol.end(); ++it)
+      {
+        unsigned int protocol_version = it->first.as<unsigned int>();
+        if (verbose)
+          std::cout << "sp: found specs for version " <<  protocol_version << "\n";
+        const YAML::Node& version_node = it->second;
+        if (verbose)
+          std::cout << "sp: extract version\n";
+        if (version_node["registered_devices"])
+        {
+          if (v == protocol_version)
+          {
+            YAML::Node sensor_types_node = version_node["registered_devices"];
+            if (verbose)
+              std::cout << "sp: found specs for registered_devices \n";
+            for(YAML::const_iterator senit=sensor_types_node.begin();senit!=sensor_types_node.end();++senit)
+            {
+              YAML::Node sensor_types_item = *senit;//->second;
+              if (verbose)
+                std::cout << "sp: extract sensor_type item ";
+              SensorType st;
+              std::stringstream sstr("");
+              sstr << std::hex << sensor_types_item["uid"].as<std::string>();
+              sstr >> st.id;
+              st.name = sensor_types_item["name"].as<std::string>();
+              st.manufacturer = sensor_types_item["manufacturer"].as<std::string>();
+              st.description = sensor_types_item["description"].as<std::string>();
+              st.parser_library = sensor_types_item["parser_library"].as<std::string>();
+              st.data_length = sensor_types_item["data_length"].as<unsigned int>();
+              if (verbose)
+                std::cout << st.id << " named: " << st.name << " with length " << st.data_length << "\n";
+              sensor_types[st.id] = st;
+            }
+            //success = true;
+            return;
+          }
+          else
+          {
+            std::cerr << "sp: yaml does not contain specs for version " << v << "\n";
+          }
+        }
+        else
+        {
+          std::cerr << "sp: yaml does not contain sensor_types \n";
+        }
+      }
+    }
+    else
+    {
+      std::cerr << "sp: yaml does not contain agni_serial_protocol \n";
+    }
+  }
+  std::cout << "sp: using default sensor_types\n";
+
   // hardcoded for now
   SensorType st;
   st.id = 0x0000;
   st.name = "undefined";
+  st.manufacturer = "undefined";
   st.description = "undefined";
   st.parser_library = "dummy::dummy";
   st.data_length = 0;
   sensor_types[st.id] = st;
   
   st.id = 0xDC10;
-  st.name = "MP9250";
+  st.name = "MPU9250";
+  st.manufacturer = "Drotek";
   st.description = "MPU9250 Drotek Inertial Measurement Unit";
   st.parser_library = "imu::mp9250";
   st.data_length = 2;
@@ -379,8 +510,8 @@ void SerialProtocolBase::read_config(uint8_t *buf)
   int version = (int)buf[VERSION_OFFSET];
   if (version > 0 and version <= MAX_KNOWN_VERSION)
   {
-    read_device_types("");
-    read_sensor_types("");
+    read_device_types(version);
+    read_sensor_types(version);
   }
   else
   {
@@ -592,16 +723,40 @@ void SerialProtocolBase::read()
   }
 }
 
-double SerialProtocolBase::get_data_as_double(unsigned int did)
+bool SerialProtocolBase::get_data_as_float(float &val, unsigned int did)
 {
   // check sensor existence
-  double val=-1.0;
   std::pair<SensorBase*, bool> *sensor = dev.get_sensor_by_idx(did);
   if (sensor)
   {
-    val = *((unsigned int*)sensor->first->get_data());
+    val = *((float*)sensor->first->get_data());
+    return true;
   }
-  return val;
+  return false;
+}
+
+bool SerialProtocolBase::get_data_as_short(short &val, unsigned int did)
+{
+  // check sensor existence
+  std::pair<SensorBase*, bool> *sensor = dev.get_sensor_by_idx(did);
+  if (sensor)
+  {
+    val = *((short*)sensor->first->get_data());
+    return true;
+  }
+  return false;
+}
+
+bool SerialProtocolBase::get_data_as_unsigned_short(unsigned short &val, unsigned int did)
+{
+  // check sensor existence
+  std::pair<SensorBase*, bool> *sensor = dev.get_sensor_by_idx(did);
+  if (sensor)
+  {
+    val = *((unsigned short*)sensor->first->get_data());
+    return true;
+  }
+  return false;
 }
 
 unsigned int SerialProtocolBase::get_timestamp(unsigned int did)

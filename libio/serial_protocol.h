@@ -68,6 +68,7 @@ struct SensorType
 {
   unsigned int id;
   std::string name;
+  std::string manufacturer;
   std::string description;
   std::string parser_library;
   unsigned int data_length;
@@ -152,20 +153,25 @@ protected:
 class SerialProtocolBase
 {
 public:
-  explicit SerialProtocolBase(SerialCom *serial_com);
+  explicit SerialProtocolBase(SerialCom *serial_com,
+                              const std::string device_filename="",
+                              const std::string sensor_filename="");
   ~SerialProtocolBase();
   bool init();
   bool set_device(unsigned int dev_id);
   void start_streaming(const unsigned int mode=CMD_START_STREAM_CONT_ALL);
   void loop();
   //void process();
-  double get_data_as_double(unsigned int did);
+  bool get_data_as_float(float &val, unsigned int did);
+  bool get_data_as_short(short &val, unsigned int did);
+  bool get_data_as_unsigned_short(unsigned short &val, unsigned int did);
+  
   unsigned int get_timestamp(unsigned int did);
   void trigger(const unsigned int mode, const unsigned int sen_id);
   void stop_streaming();
 
-  void read_device_types(std::string filename);
-  void read_sensor_types(std::string filename);
+  void read_device_types(const unsigned int v);
+  void read_sensor_types(const unsigned int v);
   bool exists_device(unsigned int dev_id);
   bool exists_sensor(unsigned int sen_id);
 
@@ -202,6 +208,8 @@ protected:
   std::map<unsigned int, DeviceType> device_types;
   std::map<unsigned int, SensorType> sensor_types;
   SerialCom *s;
+  std::string d_filename;
+  std::string s_filename;
   Device dev;
 };
 
