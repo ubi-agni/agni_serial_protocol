@@ -28,3 +28,10 @@ target_link_libraries(test_libio
   ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE}
   ${CURSES_NCURSES_LIBRARY}
 )
+
+add_executable(mpu9250 mpu9250.cpp)
+target_link_libraries(mpu9250 
+  agni_serial_protocol_io
+  ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE}
+  ${CURSES_NCURSES_LIBRARY}
+)
