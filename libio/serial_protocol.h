@@ -79,18 +79,22 @@ class SensorBase {
 public:
   explicit SensorBase(const unsigned int sen_len, const SensorType sensor_type);
   virtual ~SensorBase();
-  virtual bool init() = 0;
-  virtual bool parse(uint8_t *buf) = 0;
+  bool init();
+  bool unpack(uint8_t *buf);
   void* get_data();
   unsigned int get_timestamp();
   unsigned int get_len() { return len; }
+  virtual void publish()=0;
+  virtual bool parse()=0;
 
 protected:
   void extract_timestamp(uint8_t *buf);
-  void* dataptr;
-  unsigned int timestamp;
   SensorType sensor;
   unsigned int len;
+  void* dataptr;
+  unsigned int timestamp;
+  unsigned int previous_timestamp;
+
 };
 
 typedef SensorBase* (*CreateSensorFn)(const unsigned int sen_len, const SensorType sensor_type);
@@ -138,7 +142,7 @@ public:
   }
   std::pair<SensorBase*, bool> *get_sensor_by_idx(size_t idx);
   void add_sensor(unsigned int data_len, SensorType sensor_type);
-  void process_data(uint8_t *buf, size_t len);
+  void publish_all();
 
   DeviceType device;
 protected:
@@ -160,7 +164,8 @@ public:
   bool init();
   bool set_device(unsigned int dev_id);
   void start_streaming(const unsigned int mode=CMD_START_STREAM_CONT_ALL);
-  void loop();
+  void update();
+  void publish();
   //void process();
   bool get_data_as_float(float &val, unsigned int did);
   bool get_data_as_short(short &val, unsigned int did);

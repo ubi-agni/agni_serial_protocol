@@ -10,10 +10,10 @@
 
 namespace serial_protocol {
 
-SensorBase::SensorBase(const unsigned int sen_len, const SensorType sensor_type)
+SensorBase::SensorBase(const unsigned int sen_len, const SensorType sensor_type) :
+  sensor(sensor_type), len(0), dataptr(0), timestamp(0), previous_timestamp(0)
 {
-  sensor = sensor_type;
-  // check data len consistency
+  // check data len consistency to registered len
   if (sensor_type.data_length > 0)
   {
     if (sen_len != sensor_type.data_length)
@@ -24,8 +24,32 @@ SensorBase::SensorBase(const unsigned int sen_len, const SensorType sensor_type)
 
 SensorBase::~SensorBase()
 {
+  if (dataptr)
+    delete (uint8_t*)dataptr;
 }
 
+bool SensorBase::init()
+{
+  if (len)
+  {
+    if (dataptr!=0)
+      delete (uint8_t*)dataptr;
+    dataptr = (void*) new uint8_t[len];
+    if (dataptr != 0)
+      return true;
+  }
+  return false;
+}
+
+bool SensorBase::unpack(uint8_t *buf)
+{
+  // store the raw value, no processing at all
+  if (!dataptr)
+    return false;
+  extract_timestamp(buf);
+  std::memcpy((uint8_t *)dataptr, buf + TIMESTAMP_LEN, len);
+  return true;
+}
 
 void* SensorBase::get_data()
 {
@@ -54,10 +78,8 @@ void SensorBase::extract_timestamp(uint8_t *buf)
 SensorFactory::SensorFactory()
 {
   Register("undefined", &Sensor_Default::Create);
-  Register("MPU9250", &Sensor_IMU_MPU9250::Create);
+  //Register("MPU9250", &Sensor_IMU_MPU9250::Create);
   Register("MPU9250_accelerometer", &Sensor_IMU_MPU9250_Acc::Create);
-  
-  
 }
 
 void SensorFactory::Register(const std::string & sensor_name, CreateSensorFn fnCreate)
@@ -139,12 +161,20 @@ void Device::add_sensor(unsigned int data_len, const SensorType sensor_type)
   }
 }
 
-void Device::process_data(uint8_t *buf, size_t len)
+void Device::publish_all()
 {
-  //TODO for each sensors
-  //  sensor[i].parse(sen_buf, msg);
+  std::vector< std::pair<SensorBase*, bool> >::iterator it;
+  for (it=sensors.begin();
+       it != sensors.end();
+       it++)
+  {
+    std::pair<SensorBase*, bool> item = *it;
+    if (item.second)
+    {
+      item.first->publish();
+    }
+  }
 }
-
 
 /* *********************** */
 
@@ -470,7 +500,7 @@ void SerialProtocolBase::trigger(const unsigned int mode, const unsigned int sen
   }
 }
 
-void SerialProtocolBase::loop()
+void SerialProtocolBase::update()
 {
   try
   {
@@ -482,6 +512,10 @@ void SerialProtocolBase::loop()
   }
 }
 
+void SerialProtocolBase::publish()
+{
+  dev.publish_all();
+}
 
 void SerialProtocolBase::read_config(uint8_t *buf)
 {
@@ -591,9 +625,11 @@ void SerialProtocolBase::read_data(uint8_t *buf, size_t did)
         // validate the whole message
         if (valid_checksum(buf, DATA_OFFSET + expected_len))
         {
-          // parse the data
-          if(!sensor->first->parse(buf + DATA_OFFSET))
+          // unpack the data
+          if(!sensor->first->unpack(buf + DATA_OFFSET))
             throw std::runtime_error(std::string("sp:sensor data storage not initialized"));
+          // parse the data (sensor specific)
+          sensor->first->parse();
         }
         else
           throw std::runtime_error(std::string("sp:data with invalid checksum"));

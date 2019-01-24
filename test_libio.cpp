@@ -93,11 +93,12 @@ int main(int argc, char **argv)
       while (bRun && ch != 'q') // loop until Ctrl-C
       {
         try {
-          p.loop();
-          unsigned int timestamp = p.get_timestamp(1);\
-          unsigned short val;
-          if(p.get_data_as_unsigned_short(val, 1))
-            std::cout << "  timestamp: " << timestamp << ", data : " << val << "" << std::endl;
+          p.update();
+          //unsigned int timestamp = p.get_timestamp(1);\
+          //unsigned short val;
+          //if(p.get_data_as_unsigned_short(val, 1))
+          //  std::cout << "  timestamp: " << timestamp << ", data : " << val << "" << std::endl;
+          p.publish();
         } catch (const std::exception &e) {
             std::cerr << e.what() << std::endl;
           break;
