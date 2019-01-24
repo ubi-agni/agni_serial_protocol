@@ -1,35 +1,71 @@
 cmake_minimum_required (VERSION 2.8.12)
 project (agni_serial_protocol)
 
-#find_package(Boost 1.38 REQUIRED COMPONENTS thread program_options regex)
+## Compile as C++11, supported in ROS Kinetic and newer
+# add_compile_options(-std=c++11)
+
+## Find catkin macros and libraries
+## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
+## is used, also find other catkin packages
+find_package(catkin QUIET COMPONENTS
+  roscpp
+  sensor_msgs
+  std_msgs
+)
 
 #list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 #find_package(Qt54 COMPONENTS Core Gui Svg Xml SerialPort)
 
-# add sub libraries *after* calling catking_package()
-add_subdirectory (libio)
 
-find_package(Boost 1.38 REQUIRED COMPONENTS program_options)
+find_package(Boost 1.38 REQUIRED COMPONENTS system program_options)
 
 find_package(Curses QUIET)
 if(CURSES_FOUND)
    add_definitions(-DHAVE_CURSES=1)
 endif()
 
+if(catkin_FOUND)
+  catkin_package(
+  #  INCLUDE_DIRS include
+  #  LIBRARIES agni_serial_protocol
+  CATKIN_DEPENDS roscpp sensor_msgs std_msgs
+  #  DEPENDS system_lib
+  )
+  include_directories(
+  # include
+    ${catkin_INCLUDE_DIRS}
+  )
+  add_definitions(-DHAVE_ROS=1)
+endif(catkin_FOUND)
 
 include_directories(
   libio
+  ./
   ${CURSES_INCLUDE_PATH}
   ${Boost_INCLUDE_DIRS}
 )
-add_executable(test_libio test_libio.cpp)
+
+# add sub libraries *after* calling catking_package()
+add_subdirectory (libio)
+
+if(catkin_FOUND)
+  add_executable(${PROJECT_NAME}_node node/agni_serial_protocol_node.cpp)
+  target_link_libraries(${PROJECT_NAME}_node
+    agni_serial_protocol_io
+    ${catkin_LIBRARIES}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE}
+    ${CURSES_NCURSES_LIBRARY}
+  )
+endif(catkin_FOUND)
+
+add_executable(test_libio test/test_libio.cpp)
 target_link_libraries(test_libio 
   agni_serial_protocol_io
   ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE}
   ${CURSES_NCURSES_LIBRARY}
 )
 
-add_executable(mpu9250 mpu9250.cpp)
+add_executable(mpu9250 test/mpu9250.cpp)
 target_link_libraries(mpu9250 
   agni_serial_protocol_io
   ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE}

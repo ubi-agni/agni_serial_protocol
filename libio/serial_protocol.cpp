@@ -117,6 +117,16 @@ Device::~Device()
   }
 }
 
+void Device::init_ros(ros::NodeHandle &nh)
+{
+  std::vector< std::pair<SensorBase*, bool> >::iterator s;
+  for (s=sensors.begin(); s!=sensors.end(); s++)
+  {
+    SensorBase* sensor = (*s).first;
+    sensor->init_ros(nh);
+  }
+}
+
 std::string Device::get_serial()
 {
   return serialnum;
@@ -204,6 +214,13 @@ bool SerialProtocolBase::init()
     return false;
   }
 }
+
+#ifdef HAVE_ROS
+void SerialProtocolBase::init_ros(ros::NodeHandle &nh)
+{
+  dev.init_ros(nh);
+}
+#endif
 
 void SerialProtocolBase::config()
 {
@@ -515,6 +532,9 @@ void SerialProtocolBase::update()
 void SerialProtocolBase::publish()
 {
   dev.publish_all();
+#ifdef HAVE_ROS
+  ros::spinOnce();
+#endif
 }
 
 void SerialProtocolBase::read_config(uint8_t *buf)

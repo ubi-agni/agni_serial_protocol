@@ -8,5 +8,6 @@ include_directories(
 
 add_library(${PROJECT_NAME}_io STATIC ${SOURCES})
 target_link_libraries(${PROJECT_NAME}_io
-  ${YAML_CPP_LIBRARIES}
+                      ${YAML_CPP_LIBRARIES}
+                      ${catkin_LIBRARIES}
 )

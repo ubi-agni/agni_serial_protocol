@@ -6,6 +6,9 @@
 #include <utility>
 #include <stdint.h>
 #include "serial_com.h"
+#ifdef HAVE_ROS
+#include <ros/ros.h>
+#endif
 
 // protocol constants
 #define HEADER 0xF0C4
@@ -80,6 +83,9 @@ public:
   explicit SensorBase(const unsigned int sen_len, const SensorType sensor_type);
   virtual ~SensorBase();
   bool init();
+#ifdef HAVE_ROS
+  virtual void init_ros(ros::NodeHandle &nh)=0;
+#endif
   bool unpack(uint8_t *buf);
   void* get_data();
   unsigned int get_timestamp();
@@ -134,6 +140,9 @@ public:
   Device();
   ~Device();
   void init(DeviceType dev_type);
+#ifdef HAVE_ROS
+  void init_ros(ros::NodeHandle &nh);
+#endif
   std::string get_serial();
 
   std::vector< std::pair<SensorBase*, bool> > &get_sensors()
@@ -162,6 +171,10 @@ public:
                               const std::string sensor_filename="");
   ~SerialProtocolBase();
   bool init();
+#ifdef HAVE_ROS
+  void init_ros(ros::NodeHandle &nh);
+#endif
+
   bool set_device(unsigned int dev_id);
   void start_streaming(const unsigned int mode=CMD_START_STREAM_CONT_ALL);
   void update();

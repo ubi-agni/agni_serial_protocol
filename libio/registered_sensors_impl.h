@@ -5,6 +5,10 @@
 #include <iostream>
 #include <string>
 #include <stdint.h>
+#ifdef HAVE_ROS
+#include <ros/ros.h>
+#include <sensor_msgs/Imu.h>
+#endif
 
 namespace serial_protocol {
 
@@ -15,6 +19,9 @@ public:
   Sensor_Default(const unsigned int sen_len, const SensorType sensor_type);
   void publish();
   static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type) { return new Sensor_Default(sen_len, sensor_type); }
+#ifdef HAVE_ROS
+  void init_ros(ros::NodeHandle &nh);
+#endif
 private:
   bool parse();
 };
@@ -24,6 +31,15 @@ private:
 Sensor_Default::Sensor_Default(const unsigned int sen_len, const SensorType sensor_type) : SensorBase(sen_len, sensor_type)
   {
   }
+  
+
+#ifdef HAVE_ROS
+void Sensor_Default::init_ros(ros::NodeHandle &nh)
+{
+
+}
+#endif
+
 void Sensor_Default::publish()
 {
   if (previous_timestamp != timestamp)
@@ -51,23 +67,48 @@ public:
   Sensor_IMU_MPU9250_Acc(const unsigned int sen_len, const SensorType sensor_type);
   void publish();
   static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type) { return new Sensor_IMU_MPU9250_Acc(sen_len, sensor_type); }
+#ifdef HAVE_ROS
+  void init_ros(ros::NodeHandle &nh);
+#endif
 private:
   bool parse();
   float ax, ay, az;
+#ifdef HAVE_ROS
+  sensor_msgs::Imu msg;
+  ros::Publisher pub;
+#endif
 };
 
 // IMPL
   Sensor_IMU_MPU9250_Acc::Sensor_IMU_MPU9250_Acc(const unsigned int sen_len, const SensorType sensor_type) : SensorBase(sen_len, sensor_type)
   {
+
   }
+
+#ifdef HAVE_ROS
+void Sensor_IMU_MPU9250_Acc::init_ros(ros::NodeHandle &nh)
+{
+    pub = nh.advertise<sensor_msgs::Imu>(sensor.name, 10);
+    std::cout << "advertized a ros node for sensor " << sensor.name << std::endl;
+}
+#endif
+
 void Sensor_IMU_MPU9250_Acc::publish()
 {
   // printf something else there
   if (previous_timestamp != timestamp)
   {
     previous_timestamp = timestamp;
+#ifdef HAVE_ROS
+    msg.header.stamp = ros::Time::now();
+    msg.linear_acceleration.x = ax;
+    msg.linear_acceleration.y = ay;
+    msg.linear_acceleration.z = az;
+    pub.publish(msg);
+#else
     // printf something else there
     std::cout << "  timestamp: " << timestamp << ", data ax: " << ax << ", ay:" << ay << ", az: " << az <<  std::endl;
+#endif
   }
   
 }
