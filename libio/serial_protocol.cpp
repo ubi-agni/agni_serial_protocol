@@ -78,7 +78,7 @@ void SensorBase::extract_timestamp(uint8_t *buf)
 SensorFactory::SensorFactory()
 {
   Register("undefined", &Sensor_Default::Create);
-  //Register("MPU9250", &Sensor_IMU_MPU9250::Create);
+  Register("MPU9250", &Sensor_MPU9250::Create);
   Register("MPU9250_accelerometer", &Sensor_IMU_MPU9250_Acc::Create);
 }
 

@@ -16,29 +16,35 @@ void usage(char* argv[]) {
         << options << std::endl;
 }
 
-bool handleCommandline(std::string &device, std::string &device_filename,
+bool handleCommandline(std::string &device, bool &verbose, std::string &device_filename,
                        std::string &sensor_filename, int argc, char *argv[]) {
-	// default input device
-	device = "/dev/ttyACM0";
+  // default input device
+  device = "/dev/ttyACM0";
+  verbose = false;
 
-	// define processed options
-	po::options_description inputs("input options");
-	inputs.add_options()
-		("serial,s", po::value<std::string>(&device)->implicit_value(device), "serial input device")
-		("sensor_file", po::value<std::string>(&sensor_filename)->implicit_value(sensor_filename), "sensor type definition filename")
-		("device_file", po::value<std::string>(&device_filename)->implicit_value(device_filename), "device type definition filename");
-	options.add_options()
-		("help,h", "Display this help message.");
-	options.add(inputs);
+  // define processed options
+  po::options_description inputs("input options");
+  inputs.add_options()
+    ("serial,s", po::value<std::string>(&device)->implicit_value(device), "serial input device")
+    ("sensor_file", po::value<std::string>(&sensor_filename)->implicit_value(sensor_filename), "sensor type definition filename")
+    ("device_file", po::value<std::string>(&device_filename)->implicit_value(device_filename), "device type definition filename");
+  options.add_options()
+    ("verbose,v", "activate verbosity")
+    ("help,h", "Display this help message.")
+    ;
+  options.add(inputs);
 
-	po::variables_map map;
-	po::store(po::command_line_parser(argc, argv)
-	          .options(options)
-	          .run(), map);
+  po::variables_map map;
+  po::store(po::command_line_parser(argc, argv)
+            .options(options)
+            .run(), map);
 
-	if (map.count("help")) return true;
-	po::notify(map);
-	return false;
+  
+  if (map.count("verbose")) verbose = true;
+  
+  if (map.count("help")) return true;
+  po::notify(map);
+  return false;
 }
 
 
@@ -49,11 +55,10 @@ void mySigIntHandler(int sig) {
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "agni_serial_protocol_node");
-  ros::NodeHandle nh;
   std::string sSerial;
   std::string sDeviceFilename;
   std::string sSensorFilename;
+  bool bVerbose;
 
   float ax,ay,az;
 
@@ -64,7 +69,7 @@ int main(int argc, char **argv)
 
   try
   {
-    if (handleCommandline(sSerial, sDeviceFilename, sSensorFilename, argc, argv))
+    if (handleCommandline(sSerial, bVerbose, sDeviceFilename, sSensorFilename, argc, argv))
     {
       usage(argv);
       return EXIT_SUCCESS;
@@ -75,18 +80,20 @@ int main(int argc, char **argv)
     usage(argv);
     return EXIT_FAILURE;
   }
+
+  ros::init(argc, argv, "agni_serial_protocol_node", ros::init_options::NoSigintHandler);
+  ros::NodeHandle nh;
+
   try
   {
     std::cout << "connecting to " << sSerial << "\n";
     s.connect(sSerial);
-    //s.connect("/tmp/ttyV0");
     s.setTimeOut(1000);
-    //s.setVerbose(true);
+    s.setVerbose(bVerbose);
     std::cout << "connected\n";  
-    std::cout << "creating serial protocol with  device_filename " << sDeviceFilename << "\n";  
+    std::cout << "creating serial protocol with device_filename " << sDeviceFilename << " and sensor_filename " << sDeviceFilename << "\n";  
     serial_protocol::SerialProtocolBase p(&s, sDeviceFilename, sSensorFilename);
-   
-    //p.verbose = true;
+    p.verbose = bVerbose;
     std::cout << "initializing serial protocol\n";
     if(p.init())
     {
@@ -98,15 +105,12 @@ int main(int argc, char **argv)
       std::cout << "start streaming\n"; 
       p.start_streaming();
      
-      std::cout << "streaming\n"; 
+      std::cout << "streaming (press q or ctrl-c to quit)\n"; 
       unsigned char ch=0;
-      while (bRun && ch != 'q') // loop until Ctrl-C
+      while (bRun && ch != 'q' && ros::ok()) // loop until Ctrl-C
       {
         try {
           p.update();
-          //unsigned int timestamp = p.get_timestamp(1);
-          //if(p.get_data_as_3_float(ax, ay, az, 1))
-          //  std::cout << "  timestamp: " << timestamp << ", data ax: " << ax << ", ay:" << ay << ", az: " << az <<  std::endl;
           p.publish();
         } catch (const std::exception &e) {
             std::cerr << e.what() << std::endl;

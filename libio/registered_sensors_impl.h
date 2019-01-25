@@ -129,6 +129,122 @@ bool Sensor_IMU_MPU9250_Acc::parse()
   return false;
 }
 
+/* */
+
+// DECL
+class Sensor_IMU : public SensorBase
+{
+public:
+  Sensor_IMU(const unsigned int sen_len, const SensorType sensor_type);
+  void publish();
+#ifdef HAVE_ROS
+  void init_ros(ros::NodeHandle &nh);
+#endif
+
+protected:
+  float ax, ay, az;
+  float gx, gy, gz;
+  float mx, my, mz;
+  float qw, qx, qy, qz;
+private:
+  virtual bool parse()=0;
+#ifdef HAVE_ROS
+  sensor_msgs::Imu msg;
+  ros::Publisher pub;
+#endif
+};
+
+// IMPL
+  Sensor_IMU::Sensor_IMU(const unsigned int sen_len, const SensorType sensor_type) : SensorBase(sen_len, sensor_type)
+  {
+
+  }
+
+#ifdef HAVE_ROS
+void Sensor_IMU::init_ros(ros::NodeHandle &nh)
+{
+    pub = nh.advertise<sensor_msgs::Imu>(sensor.name, 10);
+    std::cout << "advertized a ros node for an IMU sensor " << sensor.name << std::endl;
+}
+#endif
+
+void Sensor_IMU::publish()
+{
+  // printf something else there
+  if (previous_timestamp != timestamp)
+  {
+    previous_timestamp = timestamp;
+#ifdef HAVE_ROS
+    msg.header.stamp = ros::Time::now();
+    msg.linear_acceleration.x = ax;
+    msg.linear_acceleration.y = ay;
+    msg.linear_acceleration.z = az;
+    msg.angular_velocity.x = gx;
+    msg.angular_velocity.y = gy;
+    msg.angular_velocity.z = gz;
+    // no storage for mx, my, mz
+    msg.orientation.w = qw;
+    msg.orientation.x = qx;
+    msg.orientation.y = qy;
+    msg.orientation.z = qz;
+    pub.publish(msg);
+#else
+    // printf something else there
+    std::cout << "  timestamp: " << timestamp << ", data ax: " << ax << ", ay: " << ay << ", az: " << az <<  std::endl;
+    std::cout << "  timestamp: " << timestamp << ", data gx: " << gx << ", gy: " << gy << ", gz: " << gz <<  std::endl;
+    std::cout << "  timestamp: " << timestamp << ", data mx: " << mx << ", my: " << my << ", mz: " << mz <<  std::endl;
+    std::cout << "  timestamp: " << timestamp << ", data qw: " << qw << ", qx: " << qx << ", qy: " << qy << ", qz: " << qz <<  std::endl;
+#endif
+  }
+  
+}
+
+/* MPU9250 */
+
+class Sensor_MPU9250 : public Sensor_IMU
+{
+public:
+  Sensor_MPU9250(const unsigned int sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type) { return new Sensor_MPU9250(sen_len, sensor_type); }
+private:
+  bool parse();
+
+};
+
+Sensor_MPU9250::Sensor_MPU9250(const unsigned int sen_len, const SensorType sensor_type) : Sensor_IMU(sen_len, sensor_type)
+{
+
+}
+
+bool Sensor_MPU9250::parse()
+{
+  if(len >=52)
+  {
+    uint8_t* buf = (uint8_t*)get_data();
+    if (buf)
+    {
+      memcpy(&ax, buf, sizeof(float));
+      memcpy(&ay, buf+4, sizeof(float));
+      memcpy(&az, buf+8, sizeof(float));
+      memcpy(&gx, buf+12, sizeof(float));
+      memcpy(&gy, buf+16, sizeof(float));
+      memcpy(&gz, buf+20, sizeof(float));
+      memcpy(&mx, buf+24, sizeof(float));
+      memcpy(&my, buf+28, sizeof(float));
+      memcpy(&mz, buf+32, sizeof(float));
+      memcpy(&qw, buf+36, sizeof(float));
+      memcpy(&qx, buf+40, sizeof(float));
+      memcpy(&qy, buf+44, sizeof(float));
+      memcpy(&qz, buf+48, sizeof(float));
+      return true;
+    }
+  }
+  return false;
+}
+
+
+
+
 
 }
 #endif
