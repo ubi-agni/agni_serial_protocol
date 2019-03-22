@@ -78,8 +78,13 @@ void SensorBase::extract_timestamp(uint8_t *buf)
 SensorFactory::SensorFactory()
 {
   Register("undefined", &Sensor_Default::Create);
+  Register("BNO055", &Sensor_BNO055::Create);
+  Register("BMA255", &Sensor_BMA255::Create);
   Register("MPU9250", &Sensor_MPU9250::Create);
   Register("MPU9250_accelerometer", &Sensor_IMU_MPU9250_Acc::Create);
+  Register("mpl115a2", &Sensor_MPL115A2::Create);
+  Register("AS5013_y_position", &Sensor_AS5013y::Create);
+  Register("AS5013", &Sensor_AS5013::Create);
 }
 
 void SensorFactory::Register(const std::string & sensor_name, CreateSensorFn fnCreate)
@@ -162,7 +167,29 @@ void Device::add_sensor(unsigned int data_len, const SensorType sensor_type)
     }
     else
     {
-      throw std::runtime_error(std::string("sp: could not create a sensor"));
+      std::cerr << "no sensor library for this sensor " << sensor_type.name << ", using default one" << std::endl;
+        SensorType st;
+  st.id = 0x0000;
+  st.name = "undefined";
+  st.data_length = 0;
+      sensor = SensorFactory::Get()->CreateSensor(data_len, st);
+      if (sensor)
+      {
+        if (sensor->init())
+        {
+          sensors.push_back(std::make_pair(sensor, true));
+        }
+        else
+        {
+          delete sensor;
+          throw std::runtime_error(std::string("sp: config answer from non-master not supported"));
+        }
+        //throw std::runtime_error(std::string("sp: could not create a sensor"));
+      }
+      else
+      {
+        throw std::runtime_error(std::string("sp: could not create a sensor"));
+      }
     }
   }
   catch (const std::exception &e) {
