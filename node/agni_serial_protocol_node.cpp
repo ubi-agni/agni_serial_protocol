@@ -62,8 +62,7 @@ int main(int argc, char **argv)
 
   float ax,ay,az;
 
-  // register Ctrl-C handler
-  signal(SIGINT, mySigIntHandler);
+  
   
   serial_protocol::SerialCom s;
 
@@ -84,6 +83,8 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "agni_serial_protocol_node", ros::init_options::NoSigintHandler);
   ros::NodeHandle nh;
 
+  // register Ctrl-C handler
+  signal(SIGINT, mySigIntHandler);
   try
   {
     std::cout << "connecting to " << sSerial << "\n";
@@ -112,6 +113,7 @@ int main(int argc, char **argv)
         try {
           p.update();
           p.publish();
+          //std::cout << ".";
         } catch (const std::exception &e) {
             std::cerr << e.what() << std::endl;
           break;
