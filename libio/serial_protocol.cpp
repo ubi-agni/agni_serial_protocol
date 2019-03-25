@@ -728,7 +728,7 @@ void SerialProtocolBase::read_error(uint8_t *buf)
         {
           // read the error string
           size_t str_len = error_code;  // include the checksum
-          char* strbuf[error_code+1];  // include null terminating char
+          char strbuf[error_code+1];  // include null terminating char
           //strbuf[0] = (char)buf[ERROR_OFFSET+2];  // first string was already read
           s->readFrame(buf+ERROR_OFFSET+2, str_len);  // read the reminder of the string
           if (!valid_checksum(buf, ERROR_OFFSET+1+str_len+1))
