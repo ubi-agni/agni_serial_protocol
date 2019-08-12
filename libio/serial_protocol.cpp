@@ -64,15 +64,15 @@ unsigned int SensorBase::get_timestamp()
 void SensorBase::extract_timestamp(uint8_t *buf)
 {
   std::memcpy((uint8_t *)&timestamp, buf, TIMESTAMP_LEN);
-  
+
 }
 
 
 /* **********************
- * 
+ *
  * based on Factory Pattern in C++
- * Cale Dunlap, 15 Sep 2012 
- * 
+ * Cale Dunlap, 15 Sep 2012
+ *
  */
 
 SensorFactory::SensorFactory()
@@ -85,6 +85,8 @@ SensorFactory::SensorFactory()
   Register("mpl115a2", &Sensor_MPL115A2::Create);
   Register("AS5013_y_position", &Sensor_AS5013y::Create);
   Register("AS5013", &Sensor_AS5013::Create);
+  Register("iobject_myrmex", &Sensor_iobject_myrmex::Create);
+  Register("tactile_glove", &Sensor_tactile_glove::Create);
 }
 
 void SensorFactory::Register(const std::string & sensor_name, CreateSensorFn fnCreate)
@@ -103,7 +105,7 @@ SensorBase *SensorFactory::CreateSensor(const unsigned int sen_len, const Sensor
 
 /* *********************** */
 
-Device::Device() 
+Device::Device()
 {
   device.id = 0;
 }
@@ -152,7 +154,7 @@ void Device::add_sensor(unsigned int data_len, const SensorType sensor_type)
   try
   {
     SensorBase *sensor = SensorFactory::Get()->CreateSensor(data_len, sensor_type);
-    
+
     if (sensor)
     {
       if (sensor->init())
@@ -216,7 +218,7 @@ void Device::publish_all()
 /* *********************** */
 
 
-SerialProtocolBase::SerialProtocolBase(SerialCom *serial_com, 
+SerialProtocolBase::SerialProtocolBase(SerialCom *serial_com,
   const std::string device_filename, const std::string sensor_filename) :
   verbose(false), streaming(false), s(serial_com), d_filename(device_filename),
   s_filename(sensor_filename)
@@ -271,8 +273,8 @@ bool SerialProtocolBase::init_device_from_config(uint8_t* buf, size_t config_num
   for (size_t i=0; i < config_num; i++)
   {
     uint8_t* config_buf = buf + i * SDSC_SIZE * sizeof(uint8_t);
-    unsigned int sen_id = config_buf[0] * 256 + config_buf[1];
-    unsigned int sen_len = config_buf[2] * 256 + config_buf[3];
+    unsigned int sen_id = config_buf[0] + config_buf[1] * 256;
+    unsigned int sen_len = config_buf[2] + config_buf[3] * 256;
     if (verbose)
       printf("sp: for sensor %lu, found sen_id %u and sen_len %u\n", i, sen_id, sen_len);
     if (exists_sensor(sen_id))
@@ -343,7 +345,7 @@ void SerialProtocolBase::read_device_types(const unsigned int v)
       for(YAML::iterator it=agni_serial_protocol.begin(); it!=agni_serial_protocol.end(); ++it)
       {
         //std::string protocol_version_str = it->first.as<std::string>();
-        // std::string protocol_version_str = 
+        // std::string protocol_version_str =
         unsigned int protocol_version = it->first.as<unsigned int>();
         if (verbose)
           std::cout << "sp: found specs for version " <<  protocol_version << "\n";
@@ -400,7 +402,7 @@ void SerialProtocolBase::read_device_types(const unsigned int v)
   dt.name = "undefined";
   dt.description = "undefined";
   device_types[dt.id] = dt;
-  
+
   dt.id = 0x01;
   dt.name = "prototype";
   dt.description = "experimental hardware";
@@ -482,7 +484,7 @@ void SerialProtocolBase::read_sensor_types(const unsigned int v)
   st.parser_library = "dummy::dummy";
   st.data_length = 0;
   sensor_types[st.id] = st;
-  
+
   st.id = 0xDC10;
   st.name = "MPU9250";
   st.manufacturer = "Drotek";
@@ -897,13 +899,13 @@ void SerialProtocolBase::process(uint8_t *buf, size_t buf_len)
        it != sensors.end();
        it++)
   {
-    
+
      for (auto it=sensors.begin(); it != sensors.end(); it++)
     {
       if (it.second.second)
         cached_max_stream_size += it.second.first.len;
     }
-    
+
     size_t sen_len = it.len
     // read the correct amount of bytes
     try
@@ -916,11 +918,11 @@ void SerialProtocolBase::process(uint8_t *buf, size_t buf_len)
         throw std::runtime_error(std::string("sp: device failed to answer"));
     }
     // check if no error in the return value
-    
+
     it.parse(buf)
-    
+
   }
-  
+
   unpack_data(buf, len)
   }
 }
@@ -957,7 +959,7 @@ void SerialProtocolBase::start_streaming(const unsigned int mode)
     catch (const std::exception &e) {
       std::cerr << e.what() << std::endl;
       throw std::runtime_error(std::string("sp: failed to start streaming"));
-    }   
+    }
   }
 }
 
@@ -993,8 +995,8 @@ void SerialProtocolBase::send(uint8_t *buf, size_t len)
 size_t SerialProtocolBase::gen_command(uint8_t *buf, uint8_t destination, uint8_t command, size_t size, uint8_t *data)
 {
   // memset(buf, HEADER, HEADER_LEN * sizeof(uint8_t)); // cannot be done due to little endianess
-  memset(buf, HDR1, sizeof(uint8_t)); 
-  memset(buf+1, HDR2, sizeof(uint8_t)); 
+  memset(buf, HDR1, sizeof(uint8_t));
+  memset(buf+1, HDR2, sizeof(uint8_t));
   memset(buf + DID_OFFSET, destination, sizeof(uint8_t));
   memset(buf + CMD_OFFSET, command, sizeof(uint8_t));
 
@@ -1046,8 +1048,8 @@ size_t SerialProtocolBase::gen_serialnum_req(uint8_t *buf)
 	//uint8_t stopbuf[5] = {0xF0,0xC4, 0x00, 0xC0, 0xF4};
 	//uint8_t stopbuf[5] = {0xF0,0xC4, 0x00, 0xF1, 0xC5};
   //for (int i=0 ; i<20; ++i)
-    s.writeFrame(stopbuf, 5); 
-	
+    s.writeFrame(stopbuf, 5);
+
 	printf("sc: stopped all transmissions\n");
 	try{
 	read_len = s.readFrame(buf, 256); // read possibly incomplete frame
@@ -1056,7 +1058,7 @@ size_t SerialProtocolBase::gen_serialnum_req(uint8_t *buf)
     std::cerr << e.what() << std::endl;
   }
 	printf("sc: reflushed %lu chars\n", read_len);
-	
+
 */
 
 

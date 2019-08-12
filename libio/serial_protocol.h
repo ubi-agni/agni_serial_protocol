@@ -100,16 +100,16 @@ protected:
   void* dataptr;
   unsigned int timestamp;
   unsigned int previous_timestamp;
-
+  bool new_data;
 };
 
 typedef SensorBase* (*CreateSensorFn)(const unsigned int sen_len, const SensorType sensor_type);
 
 /* **********************
- * 
+ *
  * based on Factory Pattern in C++
- * Cale Dunlap, 15 Sep 2012 
- * 
+ * Cale Dunlap, 15 Sep 2012
+ *
  */
 
 class SensorFactory {
@@ -117,18 +117,18 @@ private:
   SensorFactory(const SensorFactory &);
   SensorFactory();
   SensorFactory &operator=(const SensorFactory &) { return *this; }
-  
+
   typedef std::map<std::string, CreateSensorFn> SensorFactoryMap;
   SensorFactoryMap factory_map;
 public:
   ~SensorFactory() { factory_map.clear(); }
-  
+
   static SensorFactory *Get()
   {
     static SensorFactory instance;
     return &instance;
   }
-  
+
   void Register(const std::string &sensor_name, CreateSensorFn fnCreate);
   SensorBase *CreateSensor(const unsigned int sen_len, const SensorType sensor_type);
 };
@@ -155,7 +155,7 @@ public:
 
   DeviceType device;
 protected:
-  
+
   std::vector< std::pair<SensorBase*, bool> > sensors;
   //std::vector<bool> active_sensors;
   size_t cached_max_stream_size;
@@ -184,7 +184,7 @@ public:
   bool get_data_as_short(short &val, unsigned int did);
   bool get_data_as_unsigned_short(unsigned short &val, unsigned int did);
   bool get_data_as_3_float(float &x, float &y, float &z, unsigned int did);
-  
+
   unsigned int get_timestamp(unsigned int did);
   void trigger(const unsigned int mode, const unsigned int sen_id);
   void stop_streaming();
@@ -204,7 +204,7 @@ protected:
   void read_data(uint8_t *buf, size_t did);
   void read();
 
-  
+
   //void unpack_data(uint8_t *buf);
   bool valid_data(uint8_t* buf, size_t buf_len);
   bool init_device_from_config(uint8_t* buf, size_t config_num);
