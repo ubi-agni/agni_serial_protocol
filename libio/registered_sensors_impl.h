@@ -10,11 +10,18 @@
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Joy.h>
+#include <sensor_msgs/ChannelFloat32.h>
+#include <tactile_msgs/TactileState.h>
 #endif
 
 #define BIGENDIAN_TO_SIGNED_INT16(b)  (b)[0]*256 + (b)[1]
+#define BIGENDIAN_TO_UNSIGNED_INT16(b)  static_cast<uint16_t>((b)[0])*256 + static_cast<uint16_t>((b)[1])
 #define LITTLEENDIAN_TO_SIGNED_INT16(b)  (b)[1]*256 + (b)[0]
-#define LITTLEENDIAN_TO_SIGNED_INT8(b)   (b)[0]
+#define TO_SIGNED_INT8(b)   (b)[0]
+#define TO_UNSIGNED_INT8(b)   static_cast<uint8_t>((b)[0])
+#define LITTLEENDIAN12_TO_UNSIGNED_INT16(b)  static_cast<uint16_t>(((b)[1]&0x0F))*256 + static_cast<uint16_t>((b)[0])
+#define BIGENDIAN12_TO_UNSIGNED_INT16(b)   static_cast<uint16_t>(((b)[0]&0x0F))*256 + static_cast<uint16_t>((b)[1])
+#define LITTLEENDIAN4MSB_TO_UNSIGNED_INT8(b) static_cast<uint8_t>(((b)[1]&0xF0))/16
 
 namespace serial_protocol {
 
@@ -37,7 +44,7 @@ private:
 Sensor_Default::Sensor_Default(const unsigned int sen_len, const SensorType sensor_type) : SensorBase(sen_len, sensor_type)
   {
   }
-  
+
 
 #ifdef HAVE_ROS
 void Sensor_Default::init_ros(ros::NodeHandle &nh)
@@ -104,8 +111,9 @@ void Sensor_IMU_MPU9250_Acc::init_ros(ros::NodeHandle &nh)
 void Sensor_IMU_MPU9250_Acc::publish()
 {
   // printf something else there
-  if (previous_timestamp != timestamp)
+  if (previous_timestamp != timestamp && new_data)
   {
+    new_data = false;
     previous_timestamp = timestamp;
 #ifdef HAVE_ROS
     msg.header.stamp = ros::Time::now();
@@ -118,7 +126,7 @@ void Sensor_IMU_MPU9250_Acc::publish()
     std::cout << "  timestamp: " << timestamp << ", data ax: " << ax << ", ay:" << ay << ", az: " << az <<  std::endl;
 #endif
   }
-  
+
 }
 
 bool Sensor_IMU_MPU9250_Acc::parse()
@@ -131,6 +139,7 @@ bool Sensor_IMU_MPU9250_Acc::parse()
       memcpy(&ax, buf, sizeof(float));
       memcpy(&ay, buf+4, sizeof(float));
       memcpy(&az, buf+8, sizeof(float));
+      new_data = true;
       return true;
     }
   }
@@ -179,8 +188,9 @@ void Sensor_IMU::init_ros(ros::NodeHandle &nh)
 void Sensor_IMU::publish()
 {
   // printf something else there
-  if (previous_timestamp != timestamp)
+  if (previous_timestamp != timestamp && new_data)
   {
+    new_data = false;
     previous_timestamp = timestamp;
 #ifdef HAVE_ROS
     msg.header.stamp = ros::Time::now();
@@ -204,7 +214,7 @@ void Sensor_IMU::publish()
     std::cout << "  timestamp: " << timestamp << ", data qw: " << qw << ", qx: " << qx << ", qy: " << qy << ", qz: " << qz <<  std::endl;
 #endif
   }
-  
+
 }
 
 /* MPU9250 */
@@ -244,6 +254,7 @@ bool Sensor_MPU9250::parse()
       memcpy(&qx, buf+40, sizeof(float));
       memcpy(&qy, buf+44, sizeof(float));
       memcpy(&qz, buf+48, sizeof(float));
+      new_data = true;
       return true;
     }
   }
@@ -275,10 +286,10 @@ bool Sensor_BNO055::parse()
     uint8_t* buf = (uint8_t*)get_data();
     if (buf)
     {
-      
+
       // buffers are a sequences of signed 16bits integers in big-endian
       // order is qw,qx,qy,qz , ax, ay, az, mx, my, mz, gx, gy, gz
-      signed short tmp = BIGENDIAN_TO_SIGNED_INT16(buf);
+      /*signed short tmp = BIGENDIAN_TO_SIGNED_INT16(buf);
       qw = (float)tmp;
       tmp = BIGENDIAN_TO_SIGNED_INT16(buf+2);
       qx = (float)tmp;
@@ -303,8 +314,43 @@ bool Sensor_BNO055::parse()
       tmp = BIGENDIAN_TO_SIGNED_INT16(buf+22);
       gy = (float)tmp;
       tmp = BIGENDIAN_TO_SIGNED_INT16(buf+24);
+      gz = (float)tmp;*/
+
+      signed short tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf);
+      qw = (float)tmp;
+      tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+2);
+      qx = (float)tmp;
+      tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+4);
+      qy = (float)tmp;
+      tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+6);
+      qz = (float)tmp;
+      tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+8);
+      ax = (float)tmp;
+      tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+10);
+      ay = (float)tmp;
+      tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+12);
+      az = (float)tmp;
+      tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+14);
+      mx = (float)tmp;
+      tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+16);
+      my = (float)tmp;
+      tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+18);
+      mz = (float)tmp;
+      tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+20);
+      gx = (float)tmp;
+      tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+22);
+      gy = (float)tmp;
+      tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+24);
       gz = (float)tmp;
-      return true;
+
+      // protect from bad data
+      if (qx == -23131.0 && qy == -23131.0 && ax == -23131.0)
+      {
+        qx = qy = qz = ax = ay = az = mx = my = mz = gx = gy = gz = 0;
+        qw = 1;
+        new_data = false;
+        return false;
+      }
     }
     double norm = std::sqrt(qw*qw + qx*qx + qy*qy + qz*qz );
     if (norm !=0)
@@ -314,6 +360,8 @@ bool Sensor_BNO055::parse()
       qy /= norm;
       qz /= norm;
     }
+    new_data = true;
+    return true;
   }
   return false;
 }
@@ -355,6 +403,7 @@ bool Sensor_BMA255::parse()
       ay = (float)tmp;
       tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+4);
       az = (float)tmp;
+      new_data = true;
       return true;
     }
   }
@@ -399,8 +448,9 @@ void Sensor_Baro::init_ros(ros::NodeHandle &nh)
 
 void Sensor_Baro::publish()
 {
-  if (previous_timestamp != timestamp)
+  if (previous_timestamp != timestamp && new_data)
   {
+    new_data = false;
     previous_timestamp = timestamp;
 #ifdef HAVE_ROS
     msg.header.stamp = ros::Time::now();
@@ -439,6 +489,7 @@ bool Sensor_MPL115A2::parse()
     if (buf)
     {
       memcpy(&pressure, buf, sizeof(float));
+      new_data = true;
       return true;
     }
   }
@@ -485,8 +536,9 @@ void Sensor_Joy::init_ros(ros::NodeHandle &nh)
 
 void Sensor_Joy::publish()
 {
-  if (previous_timestamp != timestamp)
+  if (previous_timestamp != timestamp && new_data)
   {
+    new_data = false;
     previous_timestamp = timestamp;
 #ifdef HAVE_ROS
     msg.header.stamp = ros::Time::now();
@@ -539,10 +591,11 @@ bool Sensor_AS5013::parse()
     {
       // buffers are a sequences of signed 8bits integers in little-endian
       // order is x, y
-      signed char tmp = LITTLEENDIAN_TO_SIGNED_INT8(buf);
+      signed char tmp = TO_SIGNED_INT8(buf);
       joy_pos[0] = (float)tmp;
-      tmp = LITTLEENDIAN_TO_SIGNED_INT8(buf+1);
+      tmp = TO_SIGNED_INT8(buf+1);
       joy_pos[1] = (float)tmp;
+      new_data = true;
       return true;
     }
   }
@@ -577,13 +630,279 @@ bool Sensor_AS5013y::parse()
     {
       // buffers are a sequences of signed 8bits integers in little-endian
       // order is y
-      signed char tmp = LITTLEENDIAN_TO_SIGNED_INT8(buf);
+      signed char tmp = TO_SIGNED_INT8(buf);
       joy_pos[1] = (float)tmp;
+      new_data = true;
       return true;
     }
   }
   return false;
 }
+
+
+
+/* Base Myrmex */
+
+
+// DECL
+class Sensor_Tactile : public SensorBase
+{
+public:
+  Sensor_Tactile(const unsigned int sen_len, const SensorType sensor_type);
+  void publish();
+#ifdef HAVE_ROS
+  void init_ros(ros::NodeHandle &nh);
+#endif
+
+protected:
+  std::vector<float> tactile_array;
+#ifdef HAVE_ROS
+  ros::Publisher pub;
+  sensor_msgs::ChannelFloat32 tactile_sensor;
+  tactile_msgs::TactileState msg;
+#endif
+
+private:
+  virtual bool parse()=0;
+
+};
+
+// IMPL
+Sensor_Tactile::Sensor_Tactile(const unsigned int sen_len, const SensorType sensor_type) : SensorBase(sen_len, sensor_type)
+{
+}
+
+#ifdef HAVE_ROS
+void Sensor_Tactile::init_ros(ros::NodeHandle &nh)
+{
+    msg.sensors.resize(1);
+    pub = nh.advertise<tactile_msgs::TactileState>(sensor.name, 10);
+    tactile_sensor.name = "tactile";
+    std::cout << "advertized a ros node for a Tactile sensor " << sensor.name << std::endl;
+}
+#endif
+
+void Sensor_Tactile::publish()
+{
+  if (previous_timestamp != timestamp && new_data)
+  {
+    new_data = true;
+    previous_timestamp = timestamp;
+#ifdef HAVE_ROS
+    msg.header.stamp = ros::Time::now();
+    tactile_sensor.values = tactile_array;
+    msg.sensors[0] = tactile_sensor;
+    pub.publish(msg);
+#else
+    // printf something else there
+    std::cout << "  timestamp: " << timestamp << "\n\tdata: ";
+    for (size_t i=0; i < tactile_array.size(); i++)
+    {
+      std::cout << tactile_array[i] << " | ";
+    }
+    std::cout <<  std::endl;
+#endif
+  }
+}
+
+
+/* iObject+ */
+
+class Sensor_iobject_myrmex : public Sensor_Tactile
+{
+public:
+  Sensor_iobject_myrmex(const unsigned int sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type) { return new Sensor_iobject_myrmex(sen_len, sensor_type); }
+  void publish(); // overloaded to permit re-organize the low-level data before publishing
+private:
+  bool parse();
+#ifdef HAVE_ROS
+  void init_ros(ros::NodeHandle &nh);
+#endif
+
+private:
+  const unsigned int NUM_CHANNELS = 16;
+  const unsigned int NUM_BOARDS = 10;
+  const unsigned int ADC_PER_BOARD = 6;
+  bool initialized;
+
+#ifdef HAVE_ROS
+  std::vector< sensor_msgs::ChannelFloat32 > tactile_sensors;
+  tactile_msgs::TactileState tactile_msg;
+#endif
+
+};
+
+Sensor_iobject_myrmex::Sensor_iobject_myrmex(const unsigned int sen_len, const SensorType sensor_type) : Sensor_Tactile(sen_len, sensor_type)
+{
+  // sen_len = 120 => 2*60 bytes => 60 ADC of 16 channels each
+  tactile_array.resize(sen_len/2*NUM_CHANNELS);
+  initialized = false;
+}
+
+#ifdef HAVE_ROS
+void Sensor_iobject_myrmex::init_ros(ros::NodeHandle &nh)
+{
+    Sensor_Tactile::init_ros(nh);
+    tactile_sensors.resize(NUM_BOARDS); // 10 boards
+    for (size_t board_id = 0; board_id < NUM_BOARDS; board_id++)
+    {
+      tactile_sensors[board_id].name = "board" + std::to_string(board_id);
+      tactile_sensors[board_id].values.resize(NUM_CHANNELS * ADC_PER_BOARD);
+    }
+}
+#endif
+
+// publish only if all tactile data were updated (use channel 0 as a ref)
+void Sensor_iobject_myrmex::publish()
+{
+  if (new_data)
+  {
+    new_data = false;
+#ifdef HAVE_ROS
+    // reorganize the data into 10 TactileSensors
+    for (size_t board_id = 0; board_id < NUM_BOARDS; board_id++)
+    {
+      unsigned int board_start_idx = board_id * ADC_PER_BOARD * NUM_CHANNELS;
+      for (size_t adc_id = 0; adc_id < ADC_PER_BOARD; adc_id++)
+      {
+        unsigned int adc_start_idx = adc_id * NUM_CHANNELS;
+        for (size_t channel_id = 0; channel_id < NUM_CHANNELS; channel_id++)
+        {
+          tactile_sensors[board_id].values[adc_id * NUM_CHANNELS + channel_id] = tactile_array[board_start_idx + adc_start_idx  + channel_id];
+        }
+      }
+    }
+    msg.header.stamp = ros::Time::now();
+    msg.sensors = tactile_sensors;
+    pub.publish(msg);
+#else
+    // printf something else there
+    std::cout << "  timestamp: " << timestamp << "\n\tdata: ";
+    for (size_t i=0; i < tactile_array.size(); i++)
+    {
+      std::cout << tactile_array[i] << " | ";
+    }
+    std::cout <<  std::endl;
+#endif
+  }
+}
+
+bool Sensor_iobject_myrmex::parse()
+{
+  // TODO:Guillaume handle the timestamp for each channel
+  if(len >=1)
+  {
+    uint8_t* buf = (uint8_t*)get_data();
+    if (buf)
+    {
+      // buffers are a sequences of signed 8bits integers in little-endian
+      // order is y
+
+      // buffers are a sequences of signed 16bits integers in little-endian
+      // there are 30 (block A) + 30 (block B) packets of 2 bytes = 120 bytes = sen_len,
+      // 4 MSB are the channel number of the ADC, 12 LSB are data, but interlieved between block A and block B of tactile sensors.
+      // here block A will be the 60 first sensors in the array, block B will be the 60 next.
+      for (size_t i = 0; i < len/2; i++) // 0 - 30
+      {
+        // BLOCK A
+        unsigned short channel = LITTLEENDIAN4MSB_TO_UNSIGNED_INT8(buf + 4 * i);
+        // trigger the new_data when the last channel was received
+        if (channel == NUM_CHANNELS-1 && !new_data)
+        {
+          new_data = true;
+          // only validate new_data when the data at zero was also received (so at next cycle)
+          if (!initialized)
+          {
+            initialized = true;
+            new_data = false;
+          }
+        }
+
+        unsigned short tmp = LITTLEENDIAN12_TO_UNSIGNED_INT16(buf + 4 * i);
+        size_t idx = i * NUM_CHANNELS + channel;
+        if(idx < tactile_array.size())
+        {
+          // TODO calibrate here ?
+          tactile_array[idx] = (float)tmp;
+        }
+        // BLOCK B
+        channel = LITTLEENDIAN4MSB_TO_UNSIGNED_INT8(buf + 4 * i + 2);
+        tmp = LITTLEENDIAN12_TO_UNSIGNED_INT16(buf + 4 * i + 2);
+        // is after 30 ADC of BLOCK A * 16 channels
+        idx =  30 * NUM_CHANNELS + i * NUM_CHANNELS + channel;
+        if(idx < tactile_array.size())
+        {
+          // TODO calibrate here ?
+          tactile_array[idx] = (float)tmp;
+        }
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+
+/* tactile_glove */
+
+class Sensor_tactile_glove : public Sensor_Tactile
+{
+public:
+  Sensor_tactile_glove(const unsigned int sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type) { return new Sensor_tactile_glove(sen_len, sensor_type); }
+private:
+  bool parse();
+
+private:
+  unsigned int num_taxels;
+};
+
+Sensor_tactile_glove::Sensor_tactile_glove(const unsigned int sen_len, const SensorType sensor_type) : Sensor_Tactile(sen_len, sensor_type)
+{
+  // sen_len = x * (1 id + 2 data) => x is the tactile_array size
+  num_taxels = sen_len / 3;
+  tactile_array.resize(num_taxels);
+#ifdef HAVE_ROS
+  tactile_sensor.name = "tactile glove"; // matches urdf marker description
+#endif
+}
+
+
+
+bool Sensor_tactile_glove::parse()
+{
+  if(len >=1)
+  {
+    uint8_t* buf = (uint8_t*)get_data();
+    if (buf)
+    {
+      // buffers are a sequences of signed 8bits integers in little-endian
+      // order is y
+
+      // buffers are a sequences of signed 16bits integers in little-endian
+      // there are 30 (block A) + 30 (block B) packets of 2 bytes = 120 bytes = sen_len,
+      // 4 MSB are the channel number of the ADC, 12 LSB are data, but interlieved between block A and block B of tactile sensors.
+      // here block A will be the 60 first sensors in the array, block B will be the 60 next.
+      for (size_t i = 0; i < num_taxels; i++) // 0 - 30
+      {
+        // id
+        size_t idx = TO_UNSIGNED_INT8(buf + 3 * i);
+        unsigned short tmp = BIGENDIAN12_TO_UNSIGNED_INT16(buf + 3 * i + 1);
+        if(idx < tactile_array.size())
+        {
+          // TODO calibrate here ?
+          tactile_array[idx] = (float)tmp;
+        }
+      }
+      new_data = true;
+      return true;
+    }
+  }
+  return false;
+}
+
+
 
 
 }

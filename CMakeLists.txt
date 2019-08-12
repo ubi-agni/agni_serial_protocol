@@ -11,6 +11,7 @@ find_package(catkin QUIET COMPONENTS
   roscpp
   sensor_msgs
   std_msgs
+  tactile_msgs
 )
 
 #list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -28,7 +29,7 @@ if(catkin_FOUND)
   catkin_package(
   #  INCLUDE_DIRS include
   #  LIBRARIES agni_serial_protocol
-  CATKIN_DEPENDS roscpp sensor_msgs std_msgs
+  CATKIN_DEPENDS roscpp sensor_msgs std_msgs tactile_msgs
   #  DEPENDS system_lib
   )
   include_directories(
