@@ -79,6 +79,7 @@ SensorFactory::SensorFactory()
 {
   Register("undefined", &Sensor_Default::Create);
   Register("BNO055", &Sensor_BNO055::Create);
+  Register("BNO08X", &Sensor_BNO08X::Create);
   Register("BMA255", &Sensor_BMA255::Create);
   Register("MPU9250", &Sensor_MPU9250::Create);
   Register("MPU9250_accelerometer", &Sensor_IMU_MPU9250_Acc::Create);
@@ -86,7 +87,9 @@ SensorFactory::SensorFactory()
   Register("AS5013_y_position", &Sensor_AS5013y::Create);
   Register("AS5013", &Sensor_AS5013::Create);
   Register("iobject_myrmex", &Sensor_iobject_myrmex::Create);
-  Register("tactile_glove", &Sensor_tactile_glove::Create);
+  Register("tactile_glove_teensy", &Sensor_tactile_glove_teensy::Create);
+  Register("tactile_glove_teensy_bend", &Sensor_tactile_glove_teensy_bend::Create);
+  
 }
 
 void SensorFactory::Register(const std::string & sensor_name, CreateSensorFn fnCreate)

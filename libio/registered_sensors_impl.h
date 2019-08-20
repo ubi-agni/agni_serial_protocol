@@ -10,6 +10,7 @@
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Joy.h>
+#include <sensor_msgs/JointState.h>
 #include <sensor_msgs/ChannelFloat32.h>
 #include <tactile_msgs/TactileState.h>
 #endif
@@ -366,6 +367,57 @@ bool Sensor_BNO055::parse()
   return false;
 }
 
+/* BNO08X */
+
+class Sensor_BNO08X : public Sensor_IMU
+{
+public:
+  Sensor_BNO08X(const unsigned int sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type) { return new Sensor_BNO08X(sen_len, sensor_type); }
+private:
+  bool parse();
+
+};
+
+Sensor_BNO08X::Sensor_BNO08X(const unsigned int sen_len, const SensorType sensor_type) : Sensor_IMU(sen_len, sensor_type)
+{
+
+}
+
+bool Sensor_BNO08X::parse()
+{
+  if(len >=40)
+  {
+    uint8_t* buf = (uint8_t*)get_data();
+    if (buf)
+    {
+      // buffers are a sequences of floats in little-endian
+      // order is ax, ay, az, gx, gy, gz, qw, qx, qy, qz
+      memcpy(&ax, buf, sizeof(float));
+      memcpy(&ay, buf+4, sizeof(float));
+      memcpy(&az, buf+8, sizeof(float));
+      memcpy(&gx, buf+12, sizeof(float));
+      memcpy(&gy, buf+16, sizeof(float));
+      memcpy(&gz, buf+20, sizeof(float));
+      memcpy(&qw, buf+24, sizeof(float));
+      memcpy(&qx, buf+28, sizeof(float));
+      memcpy(&qy, buf+32, sizeof(float));
+      memcpy(&qz, buf+36, sizeof(float));
+    
+      double norm = std::sqrt(qw*qw + qx*qx + qy*qy + qz*qz);
+      if (norm !=0)
+      {
+        qw /= norm;
+        qx /= norm;
+        qy /= norm;
+        qz /= norm;
+      }
+      new_data = true;
+      return true;
+    }
+  }
+  return false;
+}
 
 
 /* BMA255 */
@@ -846,11 +898,11 @@ bool Sensor_iobject_myrmex::parse()
 
 /* tactile_glove */
 
-class Sensor_tactile_glove : public Sensor_Tactile
+class Sensor_tactile_glove_teensy : public Sensor_Tactile
 {
 public:
-  Sensor_tactile_glove(const unsigned int sen_len, const SensorType sensor_type);
-  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type) { return new Sensor_tactile_glove(sen_len, sensor_type); }
+  Sensor_tactile_glove_teensy(const unsigned int sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type) { return new Sensor_tactile_glove_teensy(sen_len, sensor_type); }
 private:
   bool parse();
 
@@ -858,7 +910,7 @@ private:
   unsigned int num_taxels;
 };
 
-Sensor_tactile_glove::Sensor_tactile_glove(const unsigned int sen_len, const SensorType sensor_type) : Sensor_Tactile(sen_len, sensor_type)
+Sensor_tactile_glove_teensy::Sensor_tactile_glove_teensy(const unsigned int sen_len, const SensorType sensor_type) : Sensor_Tactile(sen_len, sensor_type)
 {
   // sen_len = x * (1 id + 2 data) => x is the tactile_array size
   num_taxels = sen_len / 3;
@@ -870,25 +922,19 @@ Sensor_tactile_glove::Sensor_tactile_glove(const unsigned int sen_len, const Sen
 
 
 
-bool Sensor_tactile_glove::parse()
+bool Sensor_tactile_glove_teensy::parse()
 {
   if(len >=1)
   {
     uint8_t* buf = (uint8_t*)get_data();
     if (buf)
     {
-      // buffers are a sequences of signed 8bits integers in little-endian
-      // order is y
-
-      // buffers are a sequences of signed 16bits integers in little-endian
-      // there are 30 (block A) + 30 (block B) packets of 2 bytes = 120 bytes = sen_len,
-      // 4 MSB are the channel number of the ADC, 12 LSB are data, but interlieved between block A and block B of tactile sensors.
-      // here block A will be the 60 first sensors in the array, block B will be the 60 next.
-      for (size_t i = 0; i < num_taxels; i++) // 0 - 30
+      // buffers are a sequences of a uint 8 for the ID and unsigned 16bits integers for the data in little-endian
+      for (size_t i = 0; i < num_taxels; i++)
       {
         // id
         size_t idx = TO_UNSIGNED_INT8(buf + 3 * i);
-        unsigned short tmp = BIGENDIAN12_TO_UNSIGNED_INT16(buf + 3 * i + 1);
+        unsigned short tmp = LITTLEENDIAN12_TO_UNSIGNED_INT16(buf + 3 * i + 1);
         if(idx < tactile_array.size())
         {
           // TODO calibrate here ?
@@ -903,6 +949,149 @@ bool Sensor_tactile_glove::parse()
 }
 
 
+/* Base JointState */
+
+
+// DECL
+class Sensor_JointState : public SensorBase
+{
+public:
+  Sensor_JointState(const unsigned int sen_len, const SensorType sensor_type);
+  ~Sensor_JointState();
+  void publish();
+#ifdef HAVE_ROS
+  void init_ros(ros::NodeHandle &nh);
+#endif
+
+protected:
+  std::vector<double> positions;
+  std::vector<double> velocities;
+  std::vector<double> efforts;
+#ifdef HAVE_ROS
+  ros::Publisher pub;
+  sensor_msgs::JointState msg;
+#endif
+  static size_t nb_sensors;
+private:
+  virtual bool parse()=0;
+
+};
+
+//  initialize the nb_sensors, this allows multiple instance of the same sensor to publish to ROS
+size_t Sensor_JointState::nb_sensors = 0;
+
+// IMPL
+Sensor_JointState::Sensor_JointState(const unsigned int sen_len, const SensorType sensor_type) : SensorBase(sen_len, sensor_type)
+{
+  nb_sensors++;
+}
+
+Sensor_JointState::~Sensor_JointState()
+{
+  Sensor_JointState::nb_sensors--;
+}
+
+#ifdef HAVE_ROS
+void Sensor_JointState::init_ros(ros::NodeHandle &nh)
+{
+  std::string suffix = "";
+  if (nb_sensors > 1)
+    std::string suffix = "_" + std::to_string(nb_sensors-1);
+  pub = nh.advertise<sensor_msgs::JointState>("joint_states" + suffix, 10);
+  std::cout << "advertized a ros node for a JointState sensor " << std::endl;
+}
+#endif
+
+void Sensor_JointState::publish()
+{
+  if (previous_timestamp != timestamp && new_data)
+  {
+    new_data = true;
+    previous_timestamp = timestamp;
+#ifdef HAVE_ROS
+    msg.header.stamp = ros::Time::now();
+    msg.position = positions; // should be radian here
+    msg.velocity = velocities; 
+    msg.effort = efforts; 
+    pub.publish(msg);
+#else
+    // printf something else there
+    std::cout << "  timestamp: " << timestamp << "\n\tposition: ";
+    for (size_t i=0; i < positions.size(); i++)
+    {
+      std::cout << positions[i] << " | ";
+    }
+    std::cout <<  "\n\tvelocities: ";
+    for (size_t i=0; i < velocities.size(); i++)
+    {
+      std::cout << velocities[i] << " | ";
+    }
+     std::cout <<  "\n\tefforts: ";
+    for (size_t i=0; i < efforts.size(); i++)
+    {
+      std::cout << efforts[i] << " | ";
+    }
+    std::cout <<  std::endl;
+#endif
+  }
+}
+
+
+/* tactile_bend */
+
+class Sensor_tactile_glove_teensy_bend : public Sensor_JointState
+{
+public:
+  Sensor_tactile_glove_teensy_bend(const unsigned int sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type) { return new Sensor_tactile_glove_teensy_bend(sen_len, sensor_type); }
+private:
+  bool parse();
+
+private:
+  unsigned int num_joints;
+};
+
+Sensor_tactile_glove_teensy_bend::Sensor_tactile_glove_teensy_bend(const unsigned int sen_len, const SensorType sensor_type) : Sensor_JointState(sen_len, sensor_type)
+{
+  // sen_len = x * (1 id + 2 data) => x is the joint number
+  num_joints = sen_len / 3;
+  positions.resize(num_joints);
+  velocities.resize(num_joints);
+  efforts.resize(num_joints);
+#ifdef HAVE_ROS
+  for (size_t i=0; i < num_joints; i++)
+  {
+    msg.name.push_back("bend_" + std::to_string(i+1));
+  }
+#endif
+}
+
+
+bool Sensor_tactile_glove_teensy_bend::parse()
+{
+  if(len >=1)
+  {
+    uint8_t* buf = (uint8_t*)get_data();
+    if (buf)
+    {
+      // buffers are a sequences of a uint 8 for the ID and unsigned 16bits integers for the data in little-endian
+      for (size_t i = 0; i < num_joints; i++)
+      {
+        // id
+        size_t idx = TO_UNSIGNED_INT8(buf + 3 * i);
+        unsigned short tmp = LITTLEENDIAN12_TO_UNSIGNED_INT16(buf + 3 * i + 1);
+        if(idx < positions.size())
+        {
+          // TODO calibrate here ?
+          positions[idx] = (double)tmp;
+        }
+      }
+      new_data = true;
+      return true;
+    }
+  }
+  return false;
+}
 
 
 }
