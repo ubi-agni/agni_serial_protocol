@@ -181,6 +181,7 @@ Sensor_IMU::Sensor_IMU(const unsigned int sen_len, const SensorType sensor_type)
 #ifdef HAVE_ROS
 void Sensor_IMU::init_ros(ros::NodeHandle &nh)
 {
+    msg.header.frame_id = sensor.name;
     pub = nh.advertise<sensor_msgs::Imu>(sensor.name, 10);
     std::cout << "advertized a ros node for an IMU sensor " << sensor.name << std::endl;
 }
