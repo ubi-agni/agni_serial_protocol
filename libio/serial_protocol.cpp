@@ -89,7 +89,7 @@ SensorFactory::SensorFactory()
   Register("iobject_myrmex", &Sensor_iobject_myrmex::Create);
   Register("tactile_glove_teensy", &Sensor_tactile_glove_teensy::Create);
   Register("tactile_glove_teensy_bend", &Sensor_tactile_glove_teensy_bend::Create);
-  
+  Register("BMP388modified_pressure_array", &Sensor_BMP388modified_pressure_array::Create);
 }
 
 void SensorFactory::Register(const std::string & sensor_name, CreateSensorFn fnCreate)
@@ -760,7 +760,7 @@ void SerialProtocolBase::read()
   size_t read_buf_len = 0;
   try
   {
-    // always read 3 bytes HEADER + datagram id
+    // always read 3 bytes : HEADER + datagram id
     read_buf_len = s->readFrame(read_buf, DATA_OFFSET);
     if(read_buf_len == DATA_OFFSET)
     {
@@ -768,7 +768,11 @@ void SerialProtocolBase::read()
         std::cout << "sp: decoding answer" << std::endl;
       // check header
       if (!valid_header(read_buf))
+      {
+        if (verbose)
+          std::cout << "sp: found header 0x" << std::hex << (int)read_buf[0] << " 0x" << std::hex << (int)read_buf[1]   << std::endl;
         throw std::runtime_error(std::string("sp:invalid header"));
+      }
       // decode datagram ID
       uint8_t did = read_buf[DID_OFFSET];
       // read additional data depending on the datagram id

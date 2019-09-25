@@ -18,6 +18,7 @@
 #define BIGENDIAN_TO_SIGNED_INT16(b)  (b)[0]*256 + (b)[1]
 #define BIGENDIAN_TO_UNSIGNED_INT16(b)  static_cast<uint16_t>((b)[0])*256 + static_cast<uint16_t>((b)[1])
 #define LITTLEENDIAN_TO_SIGNED_INT16(b)  (b)[1]*256 + (b)[0]
+#define LITTLEENDIANUINT_TO_SIGNED_INT16(b)  static_cast<uint16_t>((b)[1]*256 + (b)[0])
 #define TO_SIGNED_INT8(b)   (b)[0]
 #define TO_UNSIGNED_INT8(b)   static_cast<uint8_t>((b)[0])
 #define LITTLEENDIAN12_TO_UNSIGNED_INT16(b)  static_cast<uint16_t>(((b)[1]&0x0F))*256 + static_cast<uint16_t>((b)[0])
@@ -889,6 +890,99 @@ bool Sensor_iobject_myrmex::parse()
           // TODO calibrate here ?
           tactile_array[idx] = (float)tmp;
         }
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+
+
+/* palm baro array */
+
+class Sensor_BMP388modified_pressure_array : public Sensor_Tactile
+{
+public:
+  Sensor_BMP388modified_pressure_array(const unsigned int sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type) { return new Sensor_BMP388modified_pressure_array(sen_len, sensor_type); }
+  void publish(); // overloaded to permit re-organize the low-level data before publishing
+private:
+  bool parse();
+#ifdef HAVE_ROS
+  void init_ros(ros::NodeHandle &nh);
+#endif
+
+private:
+  const unsigned int NUM_BYTE_PER_CHANNELS = 2;
+  bool initialized;
+
+#ifdef HAVE_ROS
+  std::vector< sensor_msgs::ChannelFloat32 > tactile_sensors;
+  tactile_msgs::TactileState tactile_msg;
+#endif
+
+};
+
+Sensor_BMP388modified_pressure_array::Sensor_BMP388modified_pressure_array(const unsigned int sen_len, const SensorType sensor_type) : Sensor_Tactile(sen_len, sensor_type)
+{
+  // sen_len = 120 => 2*60 bytes => 60 baro
+  tactile_array.resize(sen_len/NUM_BYTE_PER_CHANNELS);
+  initialized = false;
+}
+
+#ifdef HAVE_ROS
+void Sensor_BMP388modified_pressure_array::init_ros(ros::NodeHandle &nh)
+{
+    Sensor_Tactile::init_ros(nh);
+    tactile_sensors.resize(1);
+    tactile_sensors[0].name = "palm_baro_array";
+    tactile_sensors[0].values.resize(tactile_array.size());
+}
+#endif
+
+// publish only if all tactile data were updated (use channel 0 as a ref)
+void Sensor_BMP388modified_pressure_array::publish()
+{
+  if (new_data)
+  {
+    new_data = false;
+#ifdef HAVE_ROS
+    tactile_sensors[0].values = tactile_array;
+    msg.header.stamp = ros::Time::now();
+    msg.sensors = tactile_sensors;
+    pub.publish(msg);
+#else
+    // printf something else there
+    std::cout << "  timestamp: " << timestamp << "\n\tdata: ";
+    for (size_t i=0; i < tactile_array.size(); i++)
+    {
+      std::cout << tactile_array[i] << " | ";
+    }
+    std::cout <<  std::endl;
+#endif
+  }
+}
+
+bool Sensor_BMP388modified_pressure_array::parse()
+{
+  // TODO:Guillaume handle the timestamp for each channel
+  if(len >=1)
+  {
+    uint8_t* buf = (uint8_t*)get_data();
+    if (buf)
+    {
+      // buffers are a sequences of signed 16bits integers in little-endian
+      for (size_t i = 0; i < len/NUM_BYTE_PER_CHANNELS; i++) 
+      {
+        unsigned int tmp = LITTLEENDIANUINT_TO_SIGNED_INT16(buf + NUM_BYTE_PER_CHANNELS * i);
+        size_t idx = i;
+        if(idx < tactile_array.size())
+        {
+          // TODO calibrate here ?
+          tactile_array[idx] = (float)tmp;
+        }
+        new_data = true;
       }
       return true;
     }
