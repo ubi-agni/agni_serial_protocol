@@ -18,7 +18,7 @@
 #define BIGENDIAN_TO_SIGNED_INT16(b)  (b)[0]*256 + (b)[1]
 #define BIGENDIAN_TO_UNSIGNED_INT16(b)  static_cast<uint16_t>((b)[0])*256 + static_cast<uint16_t>((b)[1])
 #define LITTLEENDIAN_TO_SIGNED_INT16(b)  (b)[1]*256 + (b)[0]
-#define LITTLEENDIANUINT_TO_SIGNED_INT16(b)  static_cast<uint16_t>((b)[1]*256 + (b)[0])
+#define LITTLEENDIANUINT_TO_UNSIGNED_INT16(b)  static_cast<uint16_t>((b)[1]*256 + (b)[0])
 #define TO_SIGNED_INT8(b)   (b)[0]
 #define TO_UNSIGNED_INT8(b)   static_cast<uint8_t>((b)[0])
 #define LITTLEENDIAN12_TO_UNSIGNED_INT16(b)  static_cast<uint16_t>(((b)[1]&0x0F))*256 + static_cast<uint16_t>((b)[0])
@@ -760,6 +760,57 @@ void Sensor_Tactile::publish()
 }
 
 
+
+/* MID_tactile_fingertip_teensy */
+
+class Sensor_MID_tactile_fingertip_teensy : public Sensor_Tactile
+{
+public:
+  Sensor_MID_tactile_fingertip_teensy(const unsigned int sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type) { return new Sensor_MID_tactile_fingertip_teensy(sen_len, sensor_type); }
+private:
+  bool parse();
+
+private:
+  unsigned int num_taxels;
+};
+
+Sensor_MID_tactile_fingertip_teensy::Sensor_MID_tactile_fingertip_teensy(const unsigned int sen_len, const SensorType sensor_type) : Sensor_Tactile(sen_len, sensor_type)
+{
+  // sen_len = x * (2 data) => x is the tactile_array size
+  num_taxels = sen_len / 2;
+  tactile_array.resize(num_taxels);
+#ifdef HAVE_ROS
+  tactile_sensor.name = "rh_ffdistal"; // matches urdf marker description
+#endif
+}
+
+
+
+bool Sensor_MID_tactile_fingertip_teensy::parse()
+{
+  if(len >=1)
+  {
+    uint8_t* buf = (uint8_t*)get_data();
+    if (buf)
+    {
+      // buffers are a sequences of uint 16 for the data in little-endian
+      for (size_t i = 0; i < num_taxels; i++)
+      {
+        uint16_t tmp = LITTLEENDIANUINT_TO_UNSIGNED_INT16 (buf + 2 * i);
+        // TODO calibrate here ?
+        tactile_array[i] = (float)tmp;
+      }
+      new_data = true;
+      return true;
+    }
+  }
+  return false;
+}
+
+
+
+
 /* iObject+ */
 
 class Sensor_iobject_myrmex : public Sensor_Tactile
@@ -972,10 +1023,10 @@ bool Sensor_BMP388modified_pressure_array::parse()
     uint8_t* buf = (uint8_t*)get_data();
     if (buf)
     {
-      // buffers are a sequences of signed 16bits integers in little-endian
+      // buffers are a sequences of unsigned 16bits integers in little-endian
       for (size_t i = 0; i < len/NUM_BYTE_PER_CHANNELS; i++) 
       {
-        unsigned int tmp = LITTLEENDIANUINT_TO_SIGNED_INT16(buf + NUM_BYTE_PER_CHANNELS * i);
+        int16_t tmp = LITTLEENDIANUINT_TO_UNSIGNED_INT16(buf + NUM_BYTE_PER_CHANNELS * i);
         size_t idx = i;
         if(idx < tactile_array.size())
         {

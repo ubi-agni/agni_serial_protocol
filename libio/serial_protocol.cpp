@@ -78,6 +78,7 @@ void SensorBase::extract_timestamp(uint8_t *buf)
 SensorFactory::SensorFactory()
 {
   Register("undefined", &Sensor_Default::Create);
+  Register("MID_tactile_fingertip_teensy", &Sensor_MID_tactile_fingertip_teensy::Create);
   Register("BNO055", &Sensor_BNO055::Create);
   Register("BNO08X", &Sensor_BNO08X::Create);
   Register("BMA255", &Sensor_BMA255::Create);
