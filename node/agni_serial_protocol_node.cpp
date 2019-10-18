@@ -92,7 +92,7 @@ int main(int argc, char **argv)
     s.setTimeOut(1000);
     s.setVerbose(bVerbose);
     std::cout << "connected\n";  
-    std::cout << "creating serial protocol with device_filename " << sDeviceFilename << " and sensor_filename " << sDeviceFilename << "\n";  
+    std::cout << "creating serial protocol with device_filename " << sDeviceFilename << " and sensor_filename " << sSensorFilename << "\n";  
     serial_protocol::SerialProtocolBase p(&s, sDeviceFilename, sSensorFilename);
     p.verbose = bVerbose;
     std::cout << "initializing serial protocol\n";

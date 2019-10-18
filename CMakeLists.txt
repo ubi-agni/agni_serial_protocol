@@ -80,3 +80,6 @@ install(TARGETS ${PROJECT_NAME}_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
+foreach(d launch registration)
+  install(DIRECTORY ${d} DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+endforeach(d)
