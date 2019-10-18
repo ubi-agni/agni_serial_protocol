@@ -244,7 +244,7 @@ bool SerialProtocolBase::init()
   }
   catch (const std::exception &e) {
 
-    std::cerr << e.what() << std::endl;
+    std::cerr << "sp: init failed:" << e.what() << std::endl;
     return false;
   }
 }
@@ -343,59 +343,64 @@ void SerialProtocolBase::read_device_types(const unsigned int v)
     if (verbose)
       std::cout << "sp: reading device_types from " << d_filename << std::endl;
     //bool success = false;
-    YAML::Node root = YAML::LoadFile(d_filename);
-    if (root["agni_serial_protocol"])
-    {
-      YAML::Node agni_serial_protocol = root["agni_serial_protocol"];
-      for(YAML::iterator it=agni_serial_protocol.begin(); it!=agni_serial_protocol.end(); ++it)
+    try {
+      YAML::Node root = YAML::LoadFile(d_filename);
+      if (root["agni_serial_protocol"])
       {
-        //std::string protocol_version_str = it->first.as<std::string>();
-        // std::string protocol_version_str =
-        unsigned int protocol_version = it->first.as<unsigned int>();
-        if (verbose)
-          std::cout << "sp: found specs for version " <<  protocol_version << "\n";
-        const YAML::Node& version_node = it->second;
-        if (verbose)
-          std::cout << "sp: extract version\n";
-        if (version_node["device_types"])
+        YAML::Node agni_serial_protocol = root["agni_serial_protocol"];
+        for(YAML::iterator it=agni_serial_protocol.begin(); it!=agni_serial_protocol.end(); ++it)
         {
-          if (v == protocol_version)
+          //std::string protocol_version_str = it->first.as<std::string>();
+          // std::string protocol_version_str =
+          unsigned int protocol_version = it->first.as<unsigned int>();
+          if (verbose)
+            std::cout << "sp: found specs for version " <<  protocol_version << "\n";
+          const YAML::Node& version_node = it->second;
+          if (verbose)
+            std::cout << "sp: extract version\n";
+          if (version_node["device_types"])
           {
-            YAML::Node device_types_node = version_node["device_types"];
-            if (verbose)
-              std::cout << "sp: found specs for device_types \n";
-            for(YAML::const_iterator devit=device_types_node.begin();devit!=device_types_node.end();++devit)
+            if (v == protocol_version)
             {
-              YAML::Node device_types_item = *devit;//->second;
+              YAML::Node device_types_node = version_node["device_types"];
               if (verbose)
-                std::cout << "sp: extract device_type item ";
-              DeviceType dt;
-              std::stringstream sstr("");
-              sstr << std::hex << device_types_item["type"].as<std::string>();
-              sstr >> dt.id;
-              dt.name = device_types_item["name"].as<std::string>();
-              if (verbose)
-                std::cout << dt.id <<" named: " << dt.name << "\n";
-              dt.description = device_types_item["description"].as<std::string>();
-              device_types[dt.id] = dt;
+                std::cout << "sp: found specs for device_types \n";
+              for(YAML::const_iterator devit=device_types_node.begin();devit!=device_types_node.end();++devit)
+              {
+                YAML::Node device_types_item = *devit;//->second;
+                if (verbose)
+                  std::cout << "sp: extract device_type item ";
+                DeviceType dt;
+                std::stringstream sstr("");
+                sstr << std::hex << device_types_item["type"].as<std::string>();
+                sstr >> dt.id;
+                dt.name = device_types_item["name"].as<std::string>();
+                if (verbose)
+                  std::cout << dt.id <<" named: " << dt.name << "\n";
+                dt.description = device_types_item["description"].as<std::string>();
+                device_types[dt.id] = dt;
+              }
+              //success = true;
+              return;
             }
-            //success = true;
-            return;
+            else
+            {
+              std::cerr << "sp: yaml does not contain specs for version " << v << "\n";
+            }
           }
           else
           {
-            std::cerr << "sp: yaml does not contain specs for version " << v << "\n";
+            std::cerr << "sp: yaml does not contain device_types \n";
           }
         }
-        else
-        {
-          std::cerr << "sp: yaml does not contain device_types \n";
-        }
+      }
+      else
+      {
+        std::cerr << "sp: yaml does not contain agni_serial_protocol \n";
       }
     }
-    else
-    {
-      std::cerr << "sp: yaml does not contain agni_serial_protocol \n";
+    catch (const std::exception &e) {
+      std::cerr << "sp: read device_types error: " << e.what() << std::endl;
     }
   }
   std::cout << "sp: using default device_types\n";
@@ -422,60 +427,65 @@ void SerialProtocolBase::read_sensor_types(const unsigned int v)
     if (verbose)
       std::cout << "sp: reading sensor_types from " << s_filename << std::endl;
     //bool success = false;
-    YAML::Node root = YAML::LoadFile(s_filename);
-    if (root["agni_serial_protocol"])
-    {
-      YAML::Node agni_serial_protocol = root["agni_serial_protocol"];
-      for(YAML::iterator it=agni_serial_protocol.begin(); it!=agni_serial_protocol.end(); ++it)
+    try{
+      YAML::Node root = YAML::LoadFile(s_filename);
+      if (root["agni_serial_protocol"])
       {
-        unsigned int protocol_version = it->first.as<unsigned int>();
-        if (verbose)
-          std::cout << "sp: found specs for version " <<  protocol_version << "\n";
-        const YAML::Node& version_node = it->second;
-        if (verbose)
-          std::cout << "sp: extract version\n";
-        if (version_node["registered_devices"])
+        YAML::Node agni_serial_protocol = root["agni_serial_protocol"];
+        for(YAML::iterator it=agni_serial_protocol.begin(); it!=agni_serial_protocol.end(); ++it)
         {
-          if (v == protocol_version)
+          unsigned int protocol_version = it->first.as<unsigned int>();
+          if (verbose)
+            std::cout << "sp: found specs for version " <<  protocol_version << "\n";
+          const YAML::Node& version_node = it->second;
+          if (verbose)
+            std::cout << "sp: extract version\n";
+          if (version_node["registered_devices"])
           {
-            YAML::Node sensor_types_node = version_node["registered_devices"];
-            if (verbose)
-              std::cout << "sp: found specs for registered_devices \n";
-            for(YAML::const_iterator senit=sensor_types_node.begin();senit!=sensor_types_node.end();++senit)
+            if (v == protocol_version)
             {
-              YAML::Node sensor_types_item = *senit;//->second;
+              YAML::Node sensor_types_node = version_node["registered_devices"];
               if (verbose)
-                std::cout << "sp: extract sensor_type item ";
-              SensorType st;
-              std::stringstream sstr("");
-              sstr << std::hex << sensor_types_item["uid"].as<std::string>();
-              sstr >> st.id;
-              st.name = sensor_types_item["name"].as<std::string>();
-              st.manufacturer = sensor_types_item["manufacturer"].as<std::string>();
-              st.description = sensor_types_item["description"].as<std::string>();
-              st.parser_library = sensor_types_item["parser_library"].as<std::string>();
-              st.data_length = sensor_types_item["data_length"].as<unsigned int>();
-              if (verbose)
-                std::cout << st.id << " named: " << st.name << " with length " << st.data_length << "\n";
-              sensor_types[st.id] = st;
+                std::cout << "sp: found specs for registered_devices \n";
+              for(YAML::const_iterator senit=sensor_types_node.begin();senit!=sensor_types_node.end();++senit)
+              {
+                YAML::Node sensor_types_item = *senit;//->second;
+                if (verbose)
+                  std::cout << "sp: extract sensor_type item ";
+                SensorType st;
+                std::stringstream sstr("");
+                sstr << std::hex << sensor_types_item["uid"].as<std::string>();
+                sstr >> st.id;
+                st.name = sensor_types_item["name"].as<std::string>();
+                st.manufacturer = sensor_types_item["manufacturer"].as<std::string>();
+                st.description = sensor_types_item["description"].as<std::string>();
+                st.parser_library = sensor_types_item["parser_library"].as<std::string>();
+                st.data_length = sensor_types_item["data_length"].as<unsigned int>();
+                if (verbose)
+                  std::cout << st.id << " named: " << st.name << " with length " << st.data_length << "\n";
+                sensor_types[st.id] = st;
+              }
+              //success = true;
+              return;
             }
-            //success = true;
-            return;
+            else
+            {
+              std::cerr << "sp: yaml does not contain specs for version " << v << "\n";
+            }
           }
           else
           {
-            std::cerr << "sp: yaml does not contain specs for version " << v << "\n";
+            std::cerr << "sp: yaml does not contain sensor_types \n";
           }
         }
-        else
-        {
-          std::cerr << "sp: yaml does not contain sensor_types \n";
-        }
+      }
+      else
+      {
+        std::cerr << "sp: yaml does not contain agni_serial_protocol \n";
       }
     }
-    else
-    {
-      std::cerr << "sp: yaml does not contain agni_serial_protocol \n";
+    catch (const std::exception &e) {
+      std::cerr << "sp: read sensor_types error: " << e.what() << std::endl;
     }
   }
   std::cout << "sp: using default sensor_types\n";

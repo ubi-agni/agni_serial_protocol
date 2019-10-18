@@ -1,9 +1,0 @@
-agni_serial_protocol:
-  1: # version
-    device_types:
-    - type: "00"
-      name: "undefined"
-      description: "undefined or dummy"
-    - type: "01"
-      name: "prototype"
-      description: "experimental hardware"

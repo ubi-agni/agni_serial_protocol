@@ -1,9 +1,0 @@
-agni_serial_protocol:
-  1:
-    registered_devices:
-    - uid: "0000"
-      manufacturer: none
-      name: "dummy"
-      description: ""
-      parser_library: "dummy::dummy"
-      data_length: 0
