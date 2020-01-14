@@ -23,7 +23,7 @@
 #define TO_UNSIGNED_INT8(b)   static_cast<uint8_t>((b)[0])
 #define LITTLEENDIAN12_TO_UNSIGNED_INT16(b)  static_cast<uint16_t>(((b)[1]&0x0F))*256 + static_cast<uint16_t>((b)[0])
 #define BIGENDIAN12_TO_UNSIGNED_INT16(b)   static_cast<uint16_t>(((b)[0]&0x0F))*256 + static_cast<uint16_t>((b)[1])
-#define LITTLEENDIAN4MSB_TO_UNSIGNED_INT8(b) static_cast<uint8_t>(((b)[1]&0xF0))/16
+#define LITTLEENDIAN4MSB_TO_UNSIGNED_INT8(b) static_cast<uint8_t>(((b)[1]&0xF0)>>4)
 
 namespace serial_protocol {
 
@@ -320,51 +320,94 @@ bool Sensor_BNO055::parse()
       gz = (float)tmp;*/
 
       signed short tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf);
-      qw = (float)tmp;
+      qw = static_cast<float>(tmp);
       tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+2);
-      qx = (float)tmp;
+      qx = static_cast<float>(tmp);
       tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+4);
-      qy = (float)tmp;
+      qy = static_cast<float>(tmp);
       tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+6);
-      qz = (float)tmp;
+      qz = static_cast<float>(tmp);
       tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+8);
-      ax = (float)tmp;
+      ax = static_cast<float>(tmp);
       tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+10);
-      ay = (float)tmp;
+      ay = static_cast<float>(tmp);
       tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+12);
-      az = (float)tmp;
+      az = static_cast<float>(tmp);
       tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+14);
-      mx = (float)tmp;
+      mx = static_cast<float>(tmp);
       tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+16);
-      my = (float)tmp;
+      my = static_cast<float>(tmp);
       tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+18);
-      mz = (float)tmp;
+      mz = static_cast<float>(tmp);
       tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+20);
-      gx = (float)tmp;
+      gx = static_cast<float>(tmp);
       tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+22);
-      gy = (float)tmp;
+      gy = static_cast<float>(tmp);
       tmp = LITTLEENDIAN_TO_SIGNED_INT16(buf+24);
-      gz = (float)tmp;
+      gz = static_cast<float>(tmp);
 
+
+      if (gx == 1280.0)
+      {
+        
+        std::cout << "wrong IMU data. float " << std::endl; 
+    
+        /*std::cout << "wrong IMU data. float val qw " << std::dec << qw << " hex 0x" << std::hex <<  static_cast<int>(*(buf+0)) << "| 0x" << std::hex  << static_cast<int>(*(buf+1)) << std::endl;
+        std::cout << "wrong IMU data. float val qx " << std::dec << qx << " hex 0x" << std::hex <<  static_cast<int>(*(buf+2)) << "| 0x" << std::hex  << static_cast<int>(*(buf+3)) << std::endl;
+        std::cout << "wrong IMU data. float val qy " << std::dec << qy << " hex 0x" << std::hex <<  static_cast<int>(*(buf+4)) << "| 0x" << std::hex  << static_cast<int>(*(buf+5)) << std::endl;
+        std::cout << "wrong IMU data. float val qz " << std::dec << qz << " hex 0x" << std::hex <<  static_cast<int>(*(buf+6)) << "| 0x" << std::hex  << static_cast<int>(*(buf+7)) << std::endl;
+        
+        std::cout << "wrong IMU data. float val ax " << std::dec << ax << " hex 0x" << std::hex <<  static_cast<int>(*(buf+8)) << "| 0x" << std::hex  << static_cast<int>(*(buf+9)) << std::endl;
+        std::cout << "wrong IMU data. float val ay " << std::dec << ay << " hex 0x" << std::hex <<  static_cast<int>(*(buf+10)) << "| 0x" << std::hex  << static_cast<int>(*(buf+11)) << std::endl;
+        std::cout << "wrong IMU data. float val az " << std::dec << az << " hex 0x" << std::hex <<  static_cast<int>(*(buf+12)) << "| 0x" << std::hex  << static_cast<int>(*(buf+13)) << std::endl;
+        
+        std::cout << "wrong IMU data. float val mx " << std::dec << mx << " hex 0x" << std::hex <<  static_cast<int>(*(buf+14)) << "| 0x" << std::hex  << static_cast<int>(*(buf+15)) << std::endl;
+        std::cout << "wrong IMU data. float val my " << std::dec << my << " hex 0x" << std::hex <<  static_cast<int>(*(buf+16)) << "| 0x" << std::hex  << static_cast<int>(*(buf+17)) << std::endl;
+        std::cout << "wrong IMU data. float val mz " << std::dec << mz << " hex 0x" << std::hex <<  static_cast<int>(*(buf+18)) << "| 0x" << std::hex  << static_cast<int>(*(buf+19)) << std::endl;
+        
+        std::cout << "wrong IMU data. float val gx " << std::dec << gx << " hex 0x" << std::hex <<  static_cast<int>(*(buf+20)) << "| 0x" << std::hex  << static_cast<int>(*(buf+21)) << std::endl;
+        std::cout << "wrong IMU data. float val gy " << std::dec << gy << " hex 0x" << std::hex <<  static_cast<int>(*(buf+22)) << "| 0x" << std::hex  << static_cast<int>(*(buf+23)) << std::endl;
+        std::cout << "wrong IMU data. float val gz " << std::dec << gz << " hex 0x" << std::hex <<  static_cast<int>(*(buf+24)) << "| 0x" << std::hex  << static_cast<int>(*(buf+25)) << std::endl;
+        */
+        
+      }
+      /*else
+       std::cout << "correct IMU data. float " << std::endl; 
+      
+    
+     std::cout << "quat " << std::dec << qw << "," << qx << "," << qy << "," << qz << std::endl;
+      std::cout << "acc "  << std::dec << ax << "," << ay << "," << az << std::endl; 
+      std::cout << "mag "  << std::dec << mx << "," << my << "," << mz << std::endl;
+      std::cout << "gyr "   << std::dec << gx << "," << gy << "," << gz << std::endl; 
+      
+      std::cout << "  raw data 0x" ; 
+      for(unsigned int i = 0; i < 26; i++)
+      {
+        std::cout << std::hex << static_cast<int>(*(buf+i)) << "|";
+      }
+      std::cout <<  std::endl;
+      std::cout <<  std::endl;
+*/
       // protect from bad data
       if (qx == -23131.0 && qy == -23131.0 && ax == -23131.0)
       {
+        std::cout << "wrong IMU data 0xA5 0xA5 ... 0xA5 " << std::endl; 
         qx = qy = qz = ax = ay = az = mx = my = mz = gx = gy = gz = 0;
         qw = 1;
         new_data = false;
         return false;
       }
+      double norm = std::sqrt(qw*qw + qx*qx + qy*qy + qz*qz );
+      if (norm !=0)
+      {
+        qw /= norm;
+        qx /= norm;
+        qy /= norm;
+        qz /= norm;
+      }
+      new_data = true;
+      return true;
     }
-    double norm = std::sqrt(qw*qw + qx*qx + qy*qy + qz*qz );
-    if (norm !=0)
-    {
-      qw /= norm;
-      qx /= norm;
-      qy /= norm;
-      qz /= norm;
-    }
-    new_data = true;
-    return true;
   }
   return false;
 }
@@ -908,10 +951,10 @@ bool Sensor_iobject_myrmex::parse()
       // there are 30 (block A) + 30 (block B) packets of 2 bytes = 120 bytes = sen_len,
       // 4 MSB are the channel number of the ADC, 12 LSB are data, but interlieved between block A and block B of tactile sensors.
       // here block A will be the 60 first sensors in the array, block B will be the 60 next.
-      for (size_t i = 0; i < len/2; i++) // 0 - 30
+      for (size_t i = 0; i < len/4; i++) // 0 - 30
       {
         // BLOCK A
-        unsigned short channel = LITTLEENDIAN4MSB_TO_UNSIGNED_INT8(buf + 4 * i);
+        uint8_t channel = LITTLEENDIAN4MSB_TO_UNSIGNED_INT8(buf + 4 * i);
         // trigger the new_data when the last channel was received
         if (channel == NUM_CHANNELS-1 && !new_data)
         {
@@ -924,12 +967,20 @@ bool Sensor_iobject_myrmex::parse()
           }
         }
 
-        unsigned short tmp = LITTLEENDIAN12_TO_UNSIGNED_INT16(buf + 4 * i);
+        uint16_t tmp = LITTLEENDIAN12_TO_UNSIGNED_INT16(buf + 4 * i);
         size_t idx = i * NUM_CHANNELS + channel;
         if(idx < tactile_array.size())
         {
           // TODO calibrate here ?
           tactile_array[idx] = (float)tmp;
+          /* if (1)//tactile_array[idx] < 150.0)
+          {
+            std::cout << "A c " << std::dec << static_cast<int>(channel)  << ": idx:" << idx << " raw val " << tmp << " float val " << tactile_array[idx] << " i: " << i << " hex ";
+            std::cout << std::hex <<  static_cast<int>(buf[4 * i]) ;
+             std::cout << "|" << std::hex  << static_cast<int>(buf[4 * i + 1]) << " ";
+             std::cout << std::hex  << static_cast<int>(buf[4 * i+2]) ;
+             std::cout << "|" << std::hex << static_cast<int>(buf[4 * i + 3]) << std::endl;
+          }*/
         }
         // BLOCK B
         channel = LITTLEENDIAN4MSB_TO_UNSIGNED_INT8(buf + 4 * i + 2);
@@ -1051,6 +1102,10 @@ public:
   static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type) { return new Sensor_tactile_glove_teensy(sen_len, sensor_type); }
 private:
   bool parse();
+  // overload the parent function to change the name of the tactile topic to be the backward compatible name
+#ifdef HAVE_ROS
+  void init_ros(ros::NodeHandle &nh);
+#endif
 
 private:
   unsigned int num_taxels;
@@ -1066,6 +1121,15 @@ Sensor_tactile_glove_teensy::Sensor_tactile_glove_teensy(const unsigned int sen_
 #endif
 }
 
+#ifdef HAVE_ROS
+void Sensor_tactile_glove_teensy::init_ros(ros::NodeHandle &nh)
+{
+    msg.sensors.resize(1);
+    pub = nh.advertise<tactile_msgs::TactileState>("TactileGlove", 10);
+    tactile_sensor.name = "tactile";
+    std::cout << "advertized a ros node for a Tactile sensor " << sensor.name << " on topic TactileGlove" << std::endl;
+}
+#endif
 
 
 bool Sensor_tactile_glove_teensy::parse()
@@ -1081,12 +1145,16 @@ bool Sensor_tactile_glove_teensy::parse()
         // id
         size_t idx = TO_UNSIGNED_INT8(buf + 3 * i);
         unsigned short tmp = LITTLEENDIAN12_TO_UNSIGNED_INT16(buf + 3 * i + 1);
+        unsigned short channel = LITTLEENDIAN4MSB_TO_UNSIGNED_INT8(buf + 3 * i + 1); // unused for now
+        // std::cout << idx << "|" << channel << " ";
+
         if(idx < tactile_array.size())
         {
           // TODO calibrate here ?
           tactile_array[idx] = (float)tmp;
         }
       }
+      //std::cout << std::endl;
       new_data = true;
       return true;
     }
@@ -1211,7 +1279,6 @@ Sensor_tactile_glove_teensy_bend::Sensor_tactile_glove_teensy_bend(const unsigne
   }
 #endif
 }
-
 
 bool Sensor_tactile_glove_teensy_bend::parse()
 {

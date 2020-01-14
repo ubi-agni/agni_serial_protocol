@@ -826,6 +826,10 @@ void SerialProtocolBase::read()
   }
   catch (const std::exception &e) {
       std::cerr << " " <<  e.what() << std::endl;
+      std::cout << "sp: header 0x" << std::hex << (int)read_buf[0] << " 0x" << std::hex << (int)read_buf[1]   << std::endl;
+      std::cout << "sp: data 0x" << std::hex << (int)read_buf[2] << " 0x" << std::hex << (int)read_buf[3]  << " 0x" << std::hex << (int)read_buf[4] << 
+        " 0x" << std::hex << (int)read_buf[5] << " 0x" << std::hex << (int)read_buf[6] << std::endl;
+    
       throw std::runtime_error(std::string(""));
   }
 }
