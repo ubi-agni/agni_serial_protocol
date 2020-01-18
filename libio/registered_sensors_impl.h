@@ -1151,7 +1151,7 @@ bool Sensor_tactile_glove_teensy::parse()
         if(idx < tactile_array.size())
         {
           // TODO calibrate here ?
-          tactile_array[idx] = (float)tmp;
+          tactile_array[idx] = 4095.0-(float)tmp;
         }
       }
       //std::cout << std::endl;
@@ -1296,7 +1296,7 @@ bool Sensor_tactile_glove_teensy_bend::parse()
         if(idx < positions.size())
         {
           // TODO calibrate here ?
-          positions[idx] = (double)tmp;
+          positions[idx] = 4095.0-(double)tmp;
         }
       }
       new_data = true;
