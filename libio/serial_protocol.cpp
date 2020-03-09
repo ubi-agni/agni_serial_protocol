@@ -769,6 +769,8 @@ void SerialProtocolBase::read_error(uint8_t *buf)
 void SerialProtocolBase::read()
 {
   uint8_t read_buf[MAX_BUF_SIZE];
+  // init the first bytes to null to not see spurious values when debugging
+  std::memset(read_buf, 0, 7);
   size_t read_buf_len = 0;
   try
   {
