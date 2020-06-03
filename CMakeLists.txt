@@ -14,16 +14,8 @@ find_package(catkin QUIET COMPONENTS
   tactile_msgs
 )
 
-#list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
-#find_package(Qt54 COMPONENTS Core Gui Svg Xml SerialPort)
-
-
 find_package(Boost 1.38 REQUIRED COMPONENTS system program_options)
-
-find_package(Curses QUIET)
-if(CURSES_FOUND)
-   add_definitions(-DHAVE_CURSES=1)
-endif()
+find_package(Curses REQUIRED)
 
 if(catkin_FOUND)
   catkin_package(
@@ -33,7 +25,6 @@ if(catkin_FOUND)
   #  DEPENDS system_lib
   )
   include_directories(
-  # include
     ${catkin_INCLUDE_DIRS}
   )
   add_definitions(-DHAVE_ROS=1)
@@ -60,14 +51,14 @@ if(catkin_FOUND)
 endif(catkin_FOUND)
 
 add_executable(test_libio test/test_libio.cpp)
-target_link_libraries(test_libio 
+target_link_libraries(test_libio
   agni_serial_protocol_io
   ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE}
   ${CURSES_NCURSES_LIBRARY}
 )
 
 add_executable(mpu9250 test/mpu9250.cpp)
-target_link_libraries(mpu9250 
+target_link_libraries(mpu9250
   agni_serial_protocol_io
   ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE}
   ${CURSES_NCURSES_LIBRARY}
