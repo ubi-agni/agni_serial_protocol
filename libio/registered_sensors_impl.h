@@ -944,10 +944,10 @@ bool Sensor_iobject_myrmex::parse()
     uint8_t* buf = (uint8_t*)get_data();
     if (buf)
     {
-      // buffers are a sequences of signed 8bits integers in little-endian
+      // buffers are sequences of signed 8bits integers in little-endian
       // order is y
 
-      // buffers are a sequences of signed 16bits integers in little-endian
+      // buffers are sequences of signed 16bits integers in little-endian
       // there are 30 (block A) + 30 (block B) packets of 2 bytes = 120 bytes = sen_len,
       // 4 MSB are the channel number of the ADC, 12 LSB are data, but interlieved between block A and block B of tactile sensors.
       // here block A will be the 60 first sensors in the array, block B will be the 60 next.

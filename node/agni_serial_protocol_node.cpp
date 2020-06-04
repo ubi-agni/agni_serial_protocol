@@ -1,7 +1,6 @@
 #include <signal.h>
 #include <stdio.h>
 #include <iostream>
-#include <curses.h>
 #include <boost/program_options.hpp>
 #include "libio/serial_protocol.h"
 #include "libio/serial_com.h"
@@ -106,9 +105,8 @@ int main(int argc, char **argv)
       std::cout << "start streaming\n"; 
       p.start_streaming();
      
-      std::cout << "streaming (press q or ctrl-c to quit)\n"; 
-      unsigned char ch=0;
-      while (bRun && ch != 'q' && ros::ok()) // loop until Ctrl-C
+      std::cout << "streaming (press ctrl-c to quit)\n"; 
+      while (bRun && ros::ok()) // loop until Ctrl-C
       {
         try {
           p.update();
@@ -118,7 +116,6 @@ int main(int argc, char **argv)
             std::cerr << e.what() << std::endl;
           break;
         }
-        ch = getch();
       }
       p.stop_streaming();
     }

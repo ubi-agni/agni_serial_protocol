@@ -1,7 +1,6 @@
 #include <signal.h>
 #include <stdio.h>
 #include <iostream>
-#include <curses.h>
 #include <boost/program_options.hpp>
 #include "libio/serial_protocol.h"
 #include "libio/serial_com.h"
@@ -74,7 +73,6 @@ int main(int argc, char **argv)
   {
     std::cout << "connecting to " << sSerial << "\n";
     s.connect(sSerial);
-    //s.connect("/tmp/ttyV0");
     s.setTimeOut(1000);
     //s.setVerbose(true);
     std::cout << "connected\n";  
@@ -89,8 +87,7 @@ int main(int argc, char **argv)
       p.start_streaming();
      
       std::cout << "streaming\n"; 
-      unsigned char ch=0;
-      while (bRun && ch != 'q') // loop until Ctrl-C
+      while (bRun) // loop until Ctrl-C
       {
         try {
           p.update();
@@ -103,7 +100,6 @@ int main(int argc, char **argv)
             std::cerr << e.what() << std::endl;
           break;
         }
-        ch = getch();
       }
       p.stop_streaming();
     }
