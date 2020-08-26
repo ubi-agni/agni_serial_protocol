@@ -973,7 +973,7 @@ bool Sensor_iobject_myrmex::parse()
         {
           // TODO calibrate here ?
           tactile_array[idx] = (float)tmp;
-          /* if (1)//tactile_array[idx] < 150.0)
+          /*if (1)//tactile_array[idx] < 150.0)
           {
             std::cout << "A c " << std::dec << static_cast<int>(channel)  << ": idx:" << idx << " raw val " << tmp << " float val " << tactile_array[idx] << " i: " << i << " hex ";
             std::cout << std::hex <<  static_cast<int>(buf[4 * i]) ;
@@ -1306,6 +1306,55 @@ bool Sensor_tactile_glove_teensy_bend::parse()
   return false;
 }
 
+
+/* Generic JointState from floats */
+
+class Sensor_generic_position_float : public Sensor_JointState
+{
+public:
+  Sensor_generic_position_float(const unsigned int sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type) { return new Sensor_generic_position_float(sen_len, sensor_type); }
+private:
+  bool parse();
+
+private:
+  unsigned int num_joints;
+};
+
+Sensor_generic_position_float::Sensor_generic_position_float(const unsigned int sen_len, const SensorType sensor_type) : Sensor_JointState(sen_len, sensor_type)
+{
+  // sen_len = x * (4 B of float) => x is the joint number
+  num_joints = sen_len / 4;
+  positions.resize(num_joints);
+  velocities.resize(num_joints);
+  efforts.resize(num_joints);
+#ifdef HAVE_ROS
+  for (size_t i=0; i < num_joints; i++)
+  {
+    msg.name.push_back("pos_" + std::to_string(i+1));
+  }
+#endif
+}
+
+bool Sensor_generic_position_float::parse()
+{
+  if(len >=1)
+  {
+    uint8_t* buf = (uint8_t*)get_data();
+    if (buf)
+    {
+      // buffers are a sequences of a uint 8 for the ID and unsigned 16bits integers for the data in little-endian
+      for (size_t i = 0; i < num_joints; i++)
+      {
+        float tmp = *((float *)buf + i);
+        positions[i] = (double)tmp;
+      }
+      new_data = true;
+      return true;
+    }
+  }
+  return false;
+}
 
 }
 #endif

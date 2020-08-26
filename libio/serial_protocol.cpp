@@ -92,6 +92,7 @@ SensorFactory::SensorFactory()
   Register("tactile_glove_teensy_bend", &Sensor_tactile_glove_teensy_bend::Create);
   Register("BMP388modified_pressure_array", &Sensor_BMP388modified_pressure_array::Create);
   Register("BMP388_testboard_4sensors", &Sensor_BMP388modified_pressure_array::Create);
+  Register("Generic_position_sensors_float", &Sensor_generic_position_float::Create);
 }
 
 void SensorFactory::Register(const std::string & sensor_name, CreateSensorFn fnCreate)
