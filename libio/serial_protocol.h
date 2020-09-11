@@ -6,57 +6,13 @@
 #include <utility>
 #include <stdint.h>
 #include "serial_com.h"
+#include "serial_protocol_defines.h"
 #ifdef HAVE_ROS
 #include <ros/ros.h>
 #endif
 
-// protocol constants
-#define HEADER 0xF0C4
-#define HDR1 0xF0
-#define HDR2 0xC4
-#define HEADER_LEN 2
-#define DID_OFFSET (HEADER_LEN)
-#define VERSION_OFFSET (DID_OFFSET + 1)
-#define DEVID_OFFSET (VERSION_OFFSET + 1)
-#define SDSC_OFFSET (DEVID_OFFSET + 1)
-#define SDSC_SIZE 4
-#define CONF_MIN_LEN (SDSC_OFFSET + 1)
-#define TIMESTAMP_LEN 4
-#define DATA_OFFSET (DID_OFFSET + 1)
-#define ERROR_OFFSET (DID_OFFSET + 1)
-
-#define MAX_BUF_SIZE 256
-#define CMD_OFFSET (DID_OFFSET + 1)
-#define CMD_DATA_SZ_OFFSET (CMD_OFFSET + 1)
-#define CMD_DATA_OFFSET (CMD_DATA_SZ_OFFSET + 1)
-
-#define DID_MASTER 0x00
-#define DID_SEN_MAX 0xC9
-#define DID_SERIAL 0xF5
-#define DID_TOPO 0xFD
-#define DID_ERROR 0xFE
-#define DID_BCAST 0xFF
-
-#define CMD_STOP_STREAM 0x00
-#define CMD_CONFRQ 0xC0
-#define CMD_TOPORQ 0xC1
-#define CMD_SERIAL 0xC2
-#define CMD_PERIOD 0xD0
-#define CMD_ROM_R1 0xE0
-#define CMD_ROM_R2 0xE1
-#define CMD_ROM_W2 0xEE
-#define CMD_ROM_W1 0xEF
-#define CMD_ALIVE 0xF0
-#define CMD_START_STREAM_CONT_ALL 0xF1
-#define CMD_START_STREAM_CONT_SEL 0xF2
-#define CMD_TRIG 0xF3
-
-#define ERR_UNKNOWN 0x00
-#define ERR_CHKSUM 0xF0
-#define ERR_UNKCMD 0xF1
-#define ERR_STRMAXLEN 0xEF
-
-#define MAX_KNOWN_VERSION 1
+// constants
+#define SP_MAX_BUF_SIZE 256
 
 namespace serial_protocol
 {
@@ -189,7 +145,7 @@ public:
 #endif
 
   bool set_device(unsigned int dev_id);
-  void start_streaming(const unsigned int mode = CMD_START_STREAM_CONT_ALL);
+  void start_streaming(const unsigned int mode = SP_CMD_START_STREAM_CONT_ALL);
   void update();
   void publish();
   // void process();

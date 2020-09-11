@@ -51,7 +51,7 @@ bool SensorBase::unpack(uint8_t* buf)
   if (!dataptr)
     return false;
   extract_timestamp(buf);
-  std::memcpy((uint8_t*)dataptr, buf + TIMESTAMP_LEN, len);
+  std::memcpy((uint8_t*)dataptr, buf + SP_TIMESTAMP_LEN, len);
   return true;
 }
 
@@ -67,7 +67,7 @@ unsigned int SensorBase::get_timestamp()
 
 void SensorBase::extract_timestamp(uint8_t* buf)
 {
-  std::memcpy((uint8_t*)&timestamp, buf, TIMESTAMP_LEN);
+  std::memcpy((uint8_t*)&timestamp, buf, SP_TIMESTAMP_LEN);
 }
 
 /* **********************
@@ -256,7 +256,7 @@ void SerialProtocolBase::init_ros(ros::NodeHandle& nh)
 
 void SerialProtocolBase::config()
 {
-  uint8_t send_buf[MAX_BUF_SIZE];
+  uint8_t send_buf[SP_MAX_BUF_SIZE];
   // request config
   size_t send_buf_len = gen_master_config_req(send_buf);
   try
@@ -276,7 +276,7 @@ bool SerialProtocolBase::init_device_from_config(uint8_t* buf, size_t config_num
 {
   for (size_t i = 0; i < config_num; i++)
   {
-    uint8_t* config_buf = buf + i * SDSC_SIZE * sizeof(uint8_t);
+    uint8_t* config_buf = buf + i * SP_SDSC_SIZE * sizeof(uint8_t);
     unsigned int sen_id = config_buf[0] + config_buf[1] * 256;
     unsigned int sen_len = config_buf[2] + config_buf[3] * 256;
     if (verbose)
@@ -317,7 +317,7 @@ bool SerialProtocolBase::valid_data(uint8_t* buf, size_t buf_len)
 
 bool SerialProtocolBase::valid_header(uint8_t* buf)
 {
-  return (uint16_t)(buf[0] * 256 + buf[1]) == HEADER;
+  return (uint16_t)(buf[0] * 256 + buf[1]) == SP_HEADER;
 }
 
 bool SerialProtocolBase::valid_checksum(uint8_t* buf, size_t len)
@@ -610,15 +610,16 @@ void SerialProtocolBase::read_config(uint8_t* buf)
   }*/
   // read additional config header
   size_t buf_len = 0;
-  buf_len = s->readFrame(buf + VERSION_OFFSET, 3);
-  if (buf_len < 3)
+  buf_len = s->readFrame(buf + SP_VERSION_OFFSET, SP_VERSION_LEN + SP_DEVID_LEN + SP_SDSC_SZ_LEN);
+  if (buf_len < SP_VERSION_LEN + SP_DEVID_LEN + SP_SDSC_SZ_LEN)
   {
-    std::cerr << "sp: incorrect config header size: " << buf_len << " < " << 3 << "\n";
+    std::cerr << "sp: incorrect config header size: " << buf_len << " < "
+              << SP_VERSION_LEN + SP_DEVID_LEN + SP_SDSC_SZ_LEN << "\n";
     throw std::runtime_error(std::string("sp: device did not answer enough data"));
   }
   // read versions
-  int version = (int)buf[VERSION_OFFSET];
-  if (version > 0 and version <= MAX_KNOWN_VERSION)
+  int version = (int)buf[SP_VERSION_OFFSET];
+  if (version > 0 and version <= SP_MAX_KNOWN_VERSION)
   {
     read_device_types(version);
     read_sensor_types(version);
@@ -631,24 +632,24 @@ void SerialProtocolBase::read_config(uint8_t* buf)
   }
 
   // validate master is answering
-  if (buf[DID_OFFSET] != DID_MASTER)
+  if (buf[SP_DID_OFFSET] != SP_DID_MASTER)
   {
     throw std::runtime_error(std::string("sp: config answer from non-master not supported"));
   }
 
   // create a device
-  if (!set_device(buf[DEVID_OFFSET]))
+  if (!set_device(buf[SP_DEVID_OFFSET]))
   {
     throw std::runtime_error(std::string("sp: device exists already"));
   }
 
   // get how much more config comes
-  size_t config_num = (size_t)buf[SDSC_OFFSET];
+  size_t config_num = (size_t)buf[SP_SDSC_OFFSET];
   // read next part of the config message
   size_t config_len = 0;
   try
   {
-    config_len = s->readFrame(buf + SDSC_OFFSET + 1, config_num * SDSC_SIZE + 1);
+    config_len = s->readFrame(buf + SP_SDSC_DATA_OFFSET, config_num * SP_SDSC_SIZE + SP_CHKSUM_LEN);
   }
   catch (const std::exception& e)
   {
@@ -656,16 +657,16 @@ void SerialProtocolBase::read_config(uint8_t* buf)
     throw std::runtime_error(std::string("sp: device failed to answer"));
   }
   // check data
-  if (config_len != config_num * SDSC_SIZE + 1)
+  if (config_len != config_num * SP_SDSC_SIZE + SP_CHKSUM_LEN)
   {
-    std::cerr << "sp: read " << config_len << " bytes of config_len instead of " << config_num * SDSC_SIZE + 1
-              << std::endl;
+    std::cerr << "sp: read " << config_len << " bytes of config_len instead of "
+              << config_num * SP_SDSC_SIZE + SP_CHKSUM_LEN << std::endl;
     throw std::runtime_error(std::string("sp: incomplete sensor description datagram"));
   }
   // validate the full frame
-  if (valid_data(buf, SDSC_OFFSET + 1 + config_len))
+  if (valid_data(buf, SP_SDSC_DATA_OFFSET + config_len))
   {
-    if (!init_device_from_config(buf + SDSC_OFFSET + 1, config_num))
+    if (!init_device_from_config(buf + SP_SDSC_DATA_OFFSET, config_num))
     {
       throw std::runtime_error(std::string("sp: error initializing the device"));
     }
@@ -686,12 +687,12 @@ void SerialProtocolBase::read_data(uint8_t* buf, size_t did)
     if (sensor->second)  // active
     {
       size_t data_len = 0;
-      size_t expected_len = TIMESTAMP_LEN + sensor->first->get_len() + 1;
+      size_t expected_len = SP_TIMESTAMP_LEN + sensor->first->get_len() + SP_CHKSUM_LEN;
       // check buffer size
-      if (expected_len + DATA_OFFSET < MAX_BUF_SIZE)
+      if (expected_len + SP_DATA_OFFSET < SP_MAX_BUF_SIZE)
       {
         // read additional data (timestamp + sensor len + checksum)
-        data_len = s->readFrame(buf + DATA_OFFSET, expected_len);
+        data_len = s->readFrame(buf + SP_DATA_OFFSET, expected_len);
       }
       else
         throw std::runtime_error(std::string("sp:expects too much data for buffer max size"));
@@ -699,10 +700,10 @@ void SerialProtocolBase::read_data(uint8_t* buf, size_t did)
       if (data_len == expected_len)
       {
         // validate the whole message
-        if (valid_checksum(buf, DATA_OFFSET + expected_len))
+        if (valid_checksum(buf, SP_DATA_OFFSET + expected_len))
         {
           // unpack the data
-          if (!sensor->first->unpack(buf + DATA_OFFSET))
+          if (!sensor->first->unpack(buf + SP_DATA_OFFSET))
             throw std::runtime_error(std::string("sp:sensor data storage not initialized"));
           // parse the data (sensor specific)
           sensor->first->parse();
@@ -730,41 +731,48 @@ void SerialProtocolBase::read_data(uint8_t* buf, size_t did)
 void SerialProtocolBase::read_error(uint8_t* buf)
 {
   size_t error_len = 0;
-  error_len = s->readFrame(buf + ERROR_OFFSET, 2);
+  error_len = s->readFrame(buf + SP_ERR_TYP_OFFSET, SP_ERR_TYP_LEN + SP_CHKSUM_LEN);
   if (error_len == 2)
   {
-    uint8_t error_code = buf[ERROR_OFFSET];
+    uint8_t error_code = buf[SP_ERR_TYP_OFFSET];
     std::cerr << "sp: device sent an error:";
     switch (error_code)
     {
-      case ERR_CHKSUM:
+      case SP_ERR_CHKSUM:
         if (!valid_checksum(buf, 5))
           throw std::runtime_error(std::string("sp:err, chksum invalid checksum"));
         std::cerr << " device says checksum error " << std::endl;
         break;
-      case ERR_UNKCMD:
+      case SP_ERR_UNKNCMD:
         if (!valid_checksum(buf, 5))
           throw std::runtime_error(std::string("sp:err, cmd invalid checksum"));
         std::cerr << " device says unknown command " << std::endl;
         break;
-      case ERR_UNKNOWN:
+      case SP_ERR_UNKNOWN:
         if (!valid_checksum(buf, 5))
           throw std::runtime_error(std::string("sp:err, unk invalid checksum"));
         std::cerr << " device encountered an unknown error" << std::endl;
         break;
+      case SP_ERR_UNKNSID:
+        if (!valid_checksum(buf, 5))
+          throw std::runtime_error(std::string("sp:err, sid invalid checksum"));
+        std::cerr << " device encountered an unknown sensor id" << std::endl;
+        break;
       default:
-        if (error_code > 0 && error_code < ERR_STRMAXLEN)
+        if (error_code > 0 && error_code < SP_ERR_STRMAX)
         {
           // read the error string
           size_t str_len = error_code;  // include the checksum
           char strbuf[error_code + 1];  // include null terminating char
           // strbuf[0] = (char)buf[ERROR_OFFSET+2];  // first string was already read
-          s->readFrame(buf + ERROR_OFFSET + 2, str_len);  // read the reminder of the string
-          if (!valid_checksum(buf, ERROR_OFFSET + 1 + str_len + 1))
+          // read str_len because one character was already read but checksum is still to be read
+          s->readFrame(buf + SP_ERR_TYP_OFFSET + SP_ERR_TYP_LEN + SP_CHKSUM_LEN,
+                       str_len);  // read the reminder of the string
+          if (!valid_checksum(buf, SP_ERR_TYP_OFFSET + SP_ERR_TYP_LEN + str_len + SP_CHKSUM_LEN))
             throw std::runtime_error(std::string("sp:err, string invalid checksum"));
-          memcpy(strbuf, buf + ERROR_OFFSET + 1, str_len);
+          memcpy(strbuf, buf + SP_ERR_TYP_OFFSET + SP_ERR_TYP_LEN, str_len);
           strbuf[str_len] = '\0';  // end of string
-          std::cerr << strbuf << std::endl;
+          std::cerr << " device reports error: " << strbuf << std::endl;
         }
         else
         {
@@ -780,15 +788,15 @@ void SerialProtocolBase::read_error(uint8_t* buf)
 
 void SerialProtocolBase::read()
 {
-  uint8_t read_buf[MAX_BUF_SIZE];
+  uint8_t read_buf[SP_MAX_BUF_SIZE];
   // init the first bytes to null to not see spurious values when debugging
   std::memset(read_buf, 0, 7);
   size_t read_buf_len = 0;
   try
   {
     // always read 3 bytes : HEADER + datagram id
-    read_buf_len = s->readFrame(read_buf, DATA_OFFSET);
-    if (read_buf_len == DATA_OFFSET)
+    read_buf_len = s->readFrame(read_buf, SP_HEADER_LEN + SP_DID_LEN);
+    if (read_buf_len == SP_HEADER_LEN + SP_DID_LEN)
     {
       if (verbose)
         std::cout << "sp: decoding answer" << std::endl;
@@ -801,29 +809,41 @@ void SerialProtocolBase::read()
         throw std::runtime_error(std::string("sp:invalid header"));
       }
       // decode datagram ID
-      uint8_t did = read_buf[DID_OFFSET];
+      uint8_t did = read_buf[SP_DID_OFFSET];
       // read additional data depending on the datagram id
       switch (did)
       {
-        case DID_MASTER:  // process master response
+        case SP_DID_DEVCNF:  // process master response
           if (verbose)
             std::cout << "sp: processing config answer" << std::endl;
           read_config(read_buf);
           break;
-        case DID_ERROR:  // process error
+        case SP_DID_TOPOL:
+          if (verbose)
+            std::cerr << "sp: topology answer decoding not yet implemented" << std::endl;
+          break;
+        case SP_DID_SERIAL:
+          if (verbose)
+            std::cerr << "sp: serial answer decoding not yet implemented" << std::endl;
+          break;
+        case SP_DID_CALCNF:
+          if (verbose)
+            std::cerr << "sp: calib config answer decoding not yet implemented" << std::endl;
+          break;
+        case SP_DID_CALDSC:
+          if (verbose)
+            std::cerr << "sp: calib description answer decoding not yet implemented" << std::endl;
+          break;
+        case SP_DID_ERR:  // process error
           read_error(read_buf);
           break;
-        case DID_SERIAL:
-          break;
-        case DID_TOPO:
-          break;
-        case DID_BCAST:
+        case SP_DID_BCAST:
           break;
         default:
-          if (did > 0 && did <= DID_SEN_MAX)  // process data
+          if (did >= SP_DID_LID1 && did <= SP_DID_LIDMAX)  // process data
           {
             if (verbose)
-              std::cout << "sp: processing data answer" << std::endl;
+              std::cout << "sp: processing data answer of sensor id " << did << std::endl;
             read_data(read_buf, did);
           }
           else  // process invalid datagram id
@@ -980,11 +1000,11 @@ void SerialProtocolBase::start_streaming(const unsigned int mode)
   bool planned_streaming = false;
   switch (mode)
   {
-    case CMD_START_STREAM_CONT_ALL:
+    case SP_CMD_START_STREAM_CONT_ALL:
       planned_streaming = true;
-      buf_len = gen_command(buf, DID_MASTER, mode, 0);
+      buf_len = gen_command(buf, SP_DID_MASTER, mode, 0);
       break;
-    case CMD_START_STREAM_CONT_SEL:
+    case SP_CMD_START_STREAM_CONT_SEL:
       planned_streaming = false;
     default:
       break;
@@ -1008,7 +1028,7 @@ void SerialProtocolBase::stop_streaming()
 {
   uint8_t buf[5];
   size_t buf_len;
-  buf_len = gen_command(buf, DID_MASTER, CMD_STOP_STREAM, 0);
+  buf_len = gen_command(buf, SP_DID_MASTER, SP_CMD_STOP_STREAM, 0);
   try
   {
     send(buf, buf_len);
@@ -1038,52 +1058,52 @@ void SerialProtocolBase::send(uint8_t* buf, size_t len)
 size_t SerialProtocolBase::gen_command(uint8_t* buf, uint8_t destination, uint8_t command, size_t size, uint8_t* data)
 {
   // memset(buf, HEADER, HEADER_LEN * sizeof(uint8_t)); // cannot be done due to little endianess
-  memset(buf, HDR1, sizeof(uint8_t));
-  memset(buf + 1, HDR2, sizeof(uint8_t));
-  memset(buf + DID_OFFSET, destination, sizeof(uint8_t));
-  memset(buf + CMD_OFFSET, command, sizeof(uint8_t));
+  memset(buf, SP_HDR1, sizeof(uint8_t));
+  memset(buf + 1, SP_HDR2, sizeof(uint8_t));
+  memset(buf + SP_DID_OFFSET, destination, sizeof(uint8_t));
+  memset(buf + SP_CMD_OFFSET, command, sizeof(uint8_t));
 
   if (size && data != NULL)
   {
-    memset(buf + CMD_DATA_SZ_OFFSET, size, 1 * sizeof(uint8_t));
-    for (unsigned int i = 0; i < size && i + CMD_DATA_OFFSET < MAX_BUF_SIZE; i++)
+    memset(buf + SP_CMD_DATA_SZ_OFFSET, size, 1 * sizeof(uint8_t));
+    for (unsigned int i = 0; i < size && i + SP_CMD_DATA_OFFSET < SP_MAX_BUF_SIZE; i++)
     {
-      buf[i + CMD_DATA_OFFSET] = data[i];
+      buf[i + SP_CMD_DATA_OFFSET] = data[i];
     }
   }
   unsigned int extra_size = (size > 0 ? 1 : 0) + size;
-  buf[CMD_DATA_SZ_OFFSET + extra_size] = compute_checksum(buf, CMD_DATA_SZ_OFFSET + extra_size);
-  return CMD_DATA_SZ_OFFSET + extra_size + 1;
+  buf[SP_CMD_DATA_SZ_OFFSET + extra_size] = compute_checksum(buf, SP_CMD_DATA_SZ_OFFSET + extra_size);
+  return SP_CMD_DATA_SZ_OFFSET + extra_size + 1;
 }
 
 size_t SerialProtocolBase::gen_master_config_req(uint8_t* buf)
 {
-  return gen_command(buf, DID_MASTER, CMD_CONFRQ, 0);
+  return gen_command(buf, SP_DID_MASTER, SP_CMD_CONFRQ, 0);
 }
 
 size_t SerialProtocolBase::gen_master_ping_req(uint8_t* buf)
 {
-  return gen_command(buf, DID_MASTER, CMD_ALIVE, 0);
+  return gen_command(buf, SP_DID_MASTER, SP_CMD_ALIVE, 0);
 }
 
 size_t SerialProtocolBase::gen_master_trigger_req(uint8_t* buf)
 {
-  return gen_command(buf, DID_MASTER, CMD_TRIG, 0);
+  return gen_command(buf, SP_DID_MASTER, SP_CMD_START_STREAM_TRIG_ALL, 0);
 }
 
 size_t SerialProtocolBase::gen_sensor_trigger_req(uint8_t* buf, const unsigned int sen_id)
 {
-  return gen_command(buf, (uint8_t)sen_id, CMD_TRIG, 0);
+  return gen_command(buf, (uint8_t)sen_id, SP_CMD_START_STREAM_TRIG_SEL, 0);
 }
 
 size_t SerialProtocolBase::gen_topo_req(uint8_t* buf)
 {
-  return gen_command(buf, DID_MASTER, CMD_TOPORQ, 0);
+  return gen_command(buf, SP_DID_MASTER, SP_CMD_TOPORQ, 0);
 }
 
 size_t SerialProtocolBase::gen_serialnum_req(uint8_t* buf)
 {
-  return gen_command(buf, DID_MASTER, CMD_SERIAL, 0);
+  return gen_command(buf, SP_DID_MASTER, SP_CMD_SERIAL, 0);
 }
 
 /*
