@@ -10,6 +10,8 @@
 
 namespace serial_protocol
 {
+unsigned int SensorBase::base_sensor_count{ 0 };
+
 SensorBase::SensorBase(const unsigned int sen_len, const SensorType sensor_type)
   : sensor(sensor_type), len(0), dataptr(0), timestamp(0), previous_timestamp(0)
 {
@@ -20,12 +22,14 @@ SensorBase::SensorBase(const unsigned int sen_len, const SensorType sensor_type)
       throw std::runtime_error(std::string("sensor: non-matching data length"));
   }
   len = sen_len;
+  base_sensor_id = ++base_sensor_count;
 }
 
 SensorBase::~SensorBase()
 {
   if (dataptr)
     delete (uint8_t*)dataptr;
+  base_sensor_count--;
 }
 
 bool SensorBase::init()

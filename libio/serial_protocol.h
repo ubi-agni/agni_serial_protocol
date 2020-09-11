@@ -104,6 +104,10 @@ protected:
   unsigned int timestamp;
   unsigned int previous_timestamp;
   bool new_data;
+  unsigned int base_sensor_id;
+
+private:
+  static unsigned int base_sensor_count;
 };
 
 typedef SensorBase* (*CreateSensorFn)(const unsigned int sen_len, const SensorType sensor_type);

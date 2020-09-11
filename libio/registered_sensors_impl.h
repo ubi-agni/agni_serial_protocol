@@ -30,6 +30,7 @@
 namespace serial_protocol
 {
 // DECL
+
 class Sensor_Default : public SensorBase
 {
 public:
@@ -42,6 +43,9 @@ public:
 #ifdef HAVE_ROS
   void init_ros(ros::NodeHandle& nh);
 #endif
+protected:
+  unsigned int sensor_id;
+
 private:
   bool parse();
   std::stringstream sstr;
@@ -49,19 +53,27 @@ private:
   std_msgs::String msg;
   ros::Publisher pub;
 #endif
+  static unsigned int sensor_count;
 };
 
+unsigned int Sensor_Default::sensor_count{ 0 };
 // IMPL
 Sensor_Default::Sensor_Default(const unsigned int sen_len, const SensorType sensor_type)
   : SensorBase(sen_len, sensor_type)
 {
+  sensor_id = ++sensor_count;
 }
 
 #ifdef HAVE_ROS
 void Sensor_Default::init_ros(ros::NodeHandle& nh)
 {
-  pub = nh.advertise<std_msgs::String>(sensor.name, 10);
-  std::cout << "advertized a ros node for sensor " << sensor.name << std::endl;
+  std::stringstream sstr;
+  if (sensor_id > 1)
+    sstr << sensor.name << "_" << sensor_id;
+  else
+    sstr << sensor.name;
+  pub = nh.advertise<std_msgs::String>(sstr.str(), 10);
+  std::cout << "advertized a ros node for sensor " << sstr.str() << std::endl;
 }
 #endif
 
@@ -198,6 +210,8 @@ private:
   sensor_msgs::Imu msg;
   ros::Publisher pub;
 #endif
+  static unsigned int sensor_count;
+  unsigned int sensor_id;
 };
 
 // IMPL
