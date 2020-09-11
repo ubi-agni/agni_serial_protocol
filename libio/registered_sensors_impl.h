@@ -4,9 +4,11 @@
 #include <cstring>
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <stdint.h>
 #ifdef HAVE_ROS
 #include <ros/ros.h>
+#include <std_msgs/String.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Joy.h>
@@ -39,6 +41,11 @@ public:
 #endif
 private:
   bool parse();
+  std::stringstream sstr;
+#ifdef HAVE_ROS
+  std_msgs::String msg;
+  ros::Publisher pub;
+#endif
 };
 
 
@@ -51,7 +58,8 @@ Sensor_Default::Sensor_Default(const unsigned int sen_len, const SensorType sens
 #ifdef HAVE_ROS
 void Sensor_Default::init_ros(ros::NodeHandle &nh)
 {
-
+  pub = nh.advertise<std_msgs::String>(sensor.name, 10);
+  std::cout << "advertized a ros node for sensor " << sensor.name << std::endl;
 }
 #endif
 
@@ -59,22 +67,37 @@ void Sensor_Default::publish()
 {
   if (previous_timestamp != timestamp)
   {
+    new_data = false;
     previous_timestamp = timestamp;
+#ifdef HAVE_ROS
+    std::stringstream sstream;
+    sstream << "[" << ros::Time::now() << "], timestamp: " << timestamp << ", data:" << sstr.str();
+    msg.data = sstream.str();
+    pub.publish(msg);
+#else
     // printf something else there
-    /*
-    std::cout << "  raw data at " << timestamp << " :" ;
-    for(unsigned int i = 0; i < len; i++)
-    {
-      std::cout << std::hex << (int)((char*)dataptr)[i] << " ";
-      }
-    std::cout <<  std::endl;
-    */
+    std::cout << "  timestamp: " << timestamp << ", " << sstr.str() <<  std::endl;
+#endif
   }
 }
 
 bool Sensor_Default::parse()
 {
-  return true;
+
+  uint8_t* buf = (uint8_t*)get_data();
+  if (buf)
+  {
+    sstr.clear();
+    sstr.str("");
+    for(unsigned int i = 0; i < len; i++)
+    {
+      sstr << std::hex << (int)((uint8_t*)buf)[i] << "|";
+    }
+    new_data = true;
+    return true;
+  }
+  else
+    return false;
 }
 
 // DECL

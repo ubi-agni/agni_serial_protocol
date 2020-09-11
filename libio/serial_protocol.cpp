@@ -176,10 +176,10 @@ void Device::add_sensor(unsigned int data_len, const SensorType sensor_type)
     else
     {
       std::cerr << "no sensor library for this sensor " << sensor_type.name << ", using default one" << std::endl;
-        SensorType st;
-  st.id = 0x0000;
-  st.name = "undefined";
-  st.data_length = 0;
+      SensorType st;
+      st.id = 0x0000;
+      st.name = "undefined";
+      st.data_length = data_len;
       sensor = SensorFactory::Get()->CreateSensor(data_len, st);
       if (sensor)
       {
