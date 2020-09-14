@@ -320,7 +320,7 @@ bool SerialProtocolBase::set_device(const uint8_t dev_id)
 
 void SerialProtocolBase::set_period(const uint8_t sen_id, const uint16_t period)
 {
-  uint8_t send_buf[SP_HEADER_LEN + SP_DID_LEN + SP_PERIOD_SENSOR_DATA_LEN + SP_CHKSUM_LEN];
+  uint8_t send_buf[SP_HEADER_LEN + SP_DID_LEN + SP_CMD_LEN + SP_CMD_DATA_SZ_LEN + SP_PERIOD_SENSOR_DATA_LEN + SP_CHKSUM_LEN];
   uint32_t send_buf_len = 0;
   if (sen_id == 0)
   {
@@ -360,7 +360,7 @@ void SerialProtocolBase::set_periods(const std::map<uint8_t, uint16_t> period_ma
 {
   if (period_map.size())
   {
-    uint8_t send_buf[SP_HEADER_LEN + SP_DID_LEN + SP_PERIOD_DATA_LEN * period_map.size() + SP_CHKSUM_LEN];
+    uint8_t send_buf[SP_HEADER_LEN + SP_DID_LEN + SP_CMD_LEN + SP_CMD_DATA_SZ_LEN + SP_PERIOD_DATA_LEN * period_map.size() + SP_CHKSUM_LEN];
     uint32_t send_buf_len = 0;
     send_buf_len = gen_period_master_req(send_buf, period_map);
     if (send_buf_len)
@@ -1209,6 +1209,7 @@ uint32_t SerialProtocolBase::gen_period_master_req(uint8_t* buf, const std::map<
       data[i * SP_PERIOD_DATA_LEN] = item.first;
       data[i * SP_PERIOD_DATA_LEN + 1] = Lowbyte(item.second);
       data[i * SP_PERIOD_DATA_LEN + 2] = Highbyte(item.second);
+      i++;
     }
     return gen_command(buf, SP_DID_MASTER, SP_CMD_PERIOD, size, SP_PERIOD_DATA_LEN, data);
   }
