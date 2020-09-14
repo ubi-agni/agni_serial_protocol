@@ -310,6 +310,70 @@ bool SerialProtocolBase::set_device(const uint8_t dev_id)
     return false;
 }
 
+void SerialProtocolBase::set_period(const uint8_t sen_id, const uint16_t period)
+{
+  uint8_t send_buf[SP_HEADER_LEN + SP_DID_LEN + SP_PERIOD_SENSOR_DATA_LEN + SP_CHKSUM_LEN];
+  uint32_t send_buf_len = 0;
+  if (sen_id == 0)
+  {
+    throw std::runtime_error(std::string("sp: set_period: sen_id cannot be 0 for set period"));
+  }
+  else
+  {
+    // check if sensor exists
+    if (exists_sensor(sen_id))
+    {
+      send_buf_len = gen_period_sensor_req(send_buf, sen_id, period);
+    }
+    else
+    {
+      throw std::runtime_error(std::string("sp: set_period: sen_id does not exist"));
+    }
+  }
+  if (send_buf_len)
+  {
+    try
+    {
+      send(send_buf, send_buf_len);
+    }
+    catch (const std::exception& e)
+    {
+      std::cerr << e.what() << std::endl;
+      throw std::runtime_error(std::string("sp: failed to set period"));
+    }
+  }
+  else
+  {
+    throw std::runtime_error(std::string("sp: invalid set period request"));
+  }
+}
+
+void SerialProtocolBase::set_periods(const std::map<uint8_t, uint16_t> period_map)
+{
+  if (period_map.size())
+  {
+    uint8_t send_buf[SP_HEADER_LEN + SP_DID_LEN + SP_PERIOD_DATA_LEN * period_map.size() + SP_CHKSUM_LEN];
+    uint32_t send_buf_len = 0;
+    send_buf_len = gen_period_master_req(send_buf, period_map);
+    if (send_buf_len)
+    {
+      try
+      {
+        send(send_buf, send_buf_len);
+      }
+      catch (const std::exception& e)
+      {
+        std::cerr << e.what() << std::endl;
+        throw std::runtime_error(std::string("sp: failed to set periods"));
+      }
+    }
+    else
+    {
+      throw std::runtime_error(std::string("sp: invalid set periods request"));
+    }
+  }
+}
+
 bool SerialProtocolBase::valid_data(const uint8_t* buf, const uint32_t buf_len)
 {
   return valid_header(buf) && valid_checksum(buf, buf_len);
@@ -1060,7 +1124,7 @@ void SerialProtocolBase::send(const uint8_t* buf, const uint32_t len)
 }
 
 uint32_t SerialProtocolBase::gen_command(uint8_t* buf, const uint8_t destination, const uint8_t command,
-                                         const uint32_t size, const uint8_t* data)
+                                         const uint32_t size, const uint16_t stride, const uint8_t* data)
 {
   // memset(buf, HEADER, HEADER_LEN * sizeof(uint8_t)); // cannot be done due to
   // little endianess
@@ -1069,15 +1133,18 @@ uint32_t SerialProtocolBase::gen_command(uint8_t* buf, const uint8_t destination
   memset(buf + SP_DID_OFFSET, destination, sizeof(uint8_t));
   memset(buf + SP_CMD_OFFSET, command, sizeof(uint8_t));
 
-  if (size && data != NULL)
+  if (size && stride && data != NULL)
   {
-    memset(buf + SP_CMD_DATA_SZ_OFFSET, (uint16_t)size, sizeof(uint16_t));
-    for (uint32_t i = 0; i < size && i + SP_CMD_DATA_OFFSET < SP_MAX_BUF_SIZE; i++)
+    // stride is not sent, as it is implicit in the command
+    memset(buf + SP_CMD_DATA_SZ_OFFSET, Lowbyte((uint16_t)size), sizeof(uint8_t));
+    memset(buf + SP_CMD_DATA_SZ_OFFSET + 1, Highbyte((uint16_t)size), sizeof(uint8_t));
+    // stride serves to copy the full data vector
+    for (uint32_t i = 0; i < size * stride && i + SP_CMD_DATA_OFFSET < SP_MAX_BUF_SIZE; i++)
     {
       buf[i + SP_CMD_DATA_OFFSET] = data[i];
     }
   }
-  uint32_t extra_size = (size > 0 ? SP_CMD_DATA_SZ_LEN : 0) + size;
+  uint32_t extra_size = (size > 0 ? SP_CMD_DATA_SZ_LEN : 0) + size * stride;
   buf[SP_CMD_DATA_SZ_OFFSET + extra_size] = compute_checksum(buf, SP_CMD_DATA_SZ_OFFSET + extra_size);
   return SP_CMD_DATA_SZ_OFFSET + extra_size + SP_CHKSUM_LEN;
 }
@@ -1110,6 +1177,38 @@ uint32_t SerialProtocolBase::gen_topo_req(uint8_t* buf)
 uint32_t SerialProtocolBase::gen_serialnum_req(uint8_t* buf)
 {
   return gen_command(buf, SP_DID_MASTER, SP_CMD_SERIAL, 0);
+}
+
+uint32_t SerialProtocolBase::gen_period_master_req(uint8_t* buf, const std::map<uint8_t, uint16_t>& period_map)
+{
+  /*for (std::map<int, MyClass>::iterator it = Map.begin(); it != Map.end();
+  ++it)
+  {
+    it->second.Method();
+  }*/
+  uint16_t size = period_map.size();
+  if (size)
+  {
+    uint8_t data[size * SP_PERIOD_DATA_LEN];
+    uint16_t i = 0;
+    for (const auto& item : period_map)
+    {
+      data[i * SP_PERIOD_DATA_LEN] = item.first;
+      data[i * SP_PERIOD_DATA_LEN + 1] = Lowbyte(item.second);
+      data[i * SP_PERIOD_DATA_LEN + 2] = Highbyte(item.second);
+    }
+    return gen_command(buf, SP_DID_MASTER, SP_CMD_PERIOD, size, SP_PERIOD_DATA_LEN, data);
+  }
+  else
+    return 0;
+}
+
+uint32_t SerialProtocolBase::gen_period_sensor_req(uint8_t* buf, const uint8_t sen_id, const uint16_t period)
+{
+  uint8_t data[SP_PERIOD_SENSOR_DATA_LEN];
+  data[0] = Lowbyte(period);
+  data[1] = Highbyte(period);
+  return gen_command(buf, sen_id, SP_CMD_PERIOD, SP_PERIOD_SENSOR_DATA_LEN, 1, data);
 }
 
 /*

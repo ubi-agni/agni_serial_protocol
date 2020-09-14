@@ -152,6 +152,8 @@ public:
   void start_streaming(const uint8_t mode = SP_CMD_START_STREAM_CONT_ALL);
   void update();
   void publish();
+  void set_period(const uint8_t sen_id, const uint16_t period);
+  void set_periods(const std::map<uint8_t, uint16_t> period_map);
   // void process();
   bool get_data_as_float(float& val, uint8_t did);
   bool get_data_as_short(short& val, uint8_t did);
@@ -186,14 +188,16 @@ protected:
   uint8_t compute_checksum(const uint8_t* buf, const uint32_t len);
 
   void send(const uint8_t* buf, const uint32_t len);
-  uint32_t gen_command(uint8_t* buf, const uint8_t destination, const uint8_t command, const uint32_t size,
-                       const uint8_t* data = NULL);
+  uint32_t gen_command(uint8_t* buf, const uint8_t destination, const uint8_t command,
+                       const uint32_t size, const uint16_t stride=1, const uint8_t* data = NULL);
   uint32_t gen_master_ping_req(uint8_t* buf);
   uint32_t gen_master_config_req(uint8_t* buf);
   uint32_t gen_sensor_trigger_req(uint8_t* buf, uint8_t sen_id);
   uint32_t gen_master_trigger_req(uint8_t* buf);
   uint32_t gen_topo_req(uint8_t* buf);
   uint32_t gen_serialnum_req(uint8_t* buf);
+  uint32_t gen_period_master_req(uint8_t* buf, const std::map<uint8_t, uint16_t>& period_map);
+  uint32_t gen_period_sensor_req(uint8_t* buf, const uint8_t sen_id, const uint16_t period);
 
   uint8_t version;
   bool streaming;
