@@ -59,10 +59,6 @@ int main(int argc, char **argv)
   std::string sSensorFilename;
   bool bVerbose;
 
-  float ax,ay,az;
-
-  
-  
   serial_protocol::SerialCom s;
 
   try

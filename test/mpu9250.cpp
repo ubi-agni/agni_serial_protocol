@@ -51,7 +51,7 @@ int main(int argc, char **argv)
   std::string sDeviceFilename;
   std::string sSensorFilename;
 
-  float ax,ay,az;
+  // float ax,ay,az;
 
   // register Ctrl-C handler
   signal(SIGINT, mySigIntHandler);

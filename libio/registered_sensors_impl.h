@@ -1213,8 +1213,9 @@ bool Sensor_tactile_glove_teensy::parse()
         // id
         size_t idx = TO_UNSIGNED_INT8(buf + 3 * i);
         unsigned short tmp = LITTLEENDIAN12_TO_UNSIGNED_INT16(buf + 3 * i + 1);
-        unsigned short channel = LITTLEENDIAN4MSB_TO_UNSIGNED_INT8(buf + 3 * i + 1);  // unused for now
+        /* unsigned short channel = LITTLEENDIAN4MSB_TO_UNSIGNED_INT8(buf + 3 * i + 1);  // unused for now
         // std::cout << idx << "|" << channel << " ";
+        */
 
         if (idx < tactile_array.size())
         {

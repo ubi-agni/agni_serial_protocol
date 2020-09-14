@@ -60,7 +60,6 @@ void SerialCom::setTimeOut(unsigned int msec)
 	if (msec >= 1000)
 	{
 		timeout.tv_sec = msec/1000;
-		unsigned int remsec = 
 		timeout.tv_nsec = (msec%1000) * 1e6;
 	}
 	else
