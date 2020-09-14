@@ -155,6 +155,14 @@ std::pair<SensorBase*, bool>* Device::get_sensor_by_idx(const uint8_t idx)
     return NULL;
 }
 
+bool Device::exists_sensor(const uint8_t idx)
+{
+  if (idx == 0)
+    return 0;
+  else
+    return idx <= sensors.size();
+}
+
 void Device::add_sensor(const uint16_t data_len, const SensorType sensor_type)
 {
   try
@@ -281,7 +289,7 @@ bool SerialProtocolBase::init_device_from_config(uint8_t* buf, const uint8_t con
     uint16_t sen_len = config_buf[2] + config_buf[3] * 256;
     if (verbose)
       printf("sp: for sensor %d, found sen_type %u and sen_len %u\n", i, sen_type, sen_len);
-    if (exists_sensor(sen_type))
+    if (exists_sensor_driver(sen_type))
     {
       try
       {
@@ -586,9 +594,14 @@ bool SerialProtocolBase::exists_device(const uint8_t dev_id)
   return device_types.find(dev_id) != device_types.end();
 }
 
+bool SerialProtocolBase::exists_sensor_driver(const uint16_t sen_driver_id)
+{
+  return sensor_types.find(sen_driver_id) != sensor_types.end();
+}
+
 bool SerialProtocolBase::exists_sensor(const uint8_t sen_id)
 {
-  return sensor_types.find(sen_id) != sensor_types.end();
+  return dev.exists_sensor(sen_id);
 }
 
 DeviceType SerialProtocolBase::get_device()

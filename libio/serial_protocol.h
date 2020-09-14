@@ -124,6 +124,7 @@ public:
     return sensors;
   }
   std::pair<SensorBase*, bool>* get_sensor_by_idx(const uint8_t idx);
+  bool exists_sensor(const uint8_t idx);
   void add_sensor(const uint16_t data_len, const SensorType sensor_type);
   void publish_all();
 
@@ -167,6 +168,7 @@ public:
   void read_device_types(const uint8_t v);
   void read_sensor_types(const uint8_t v);
   bool exists_device(const uint8_t dev_id);
+  bool exists_sensor_driver(const uint16_t sen_driver_id);
   bool exists_sensor(const uint8_t sen_id);
 
   DeviceType get_device();
