@@ -33,6 +33,7 @@
 #define SP_PING_LEN 4
 //#define CONF_MIN_LEN (SDSC_OFFSET + 1)
 #define SP_PERIOD_DATA_LEN 3
+#define SP_PERIOD_SENSOR_DATA_LEN 2
 #define SP_SEL_DATA_LEN 1
 #define SP_ERR_LEN 4
 #define SP_ERR_TXT_OFFSET 4

@@ -14,29 +14,33 @@
 // constants
 #define SP_MAX_BUF_SIZE 256
 
+// small shift operations to combine/split bytes
+#define Highbyte(x) (x >> 8)
+#define Lowbyte(x) (x & 0xff)
+
 namespace serial_protocol
 {
 struct DeviceType
 {
-  unsigned int id;
+  uint8_t id;
   std::string name;
   std::string description;
 };
 
 struct SensorType
 {
-  unsigned int id;
+  uint16_t id;
   std::string name;
   std::string manufacturer;
   std::string description;
   std::string parser_library;
-  unsigned int data_length;
+  uint16_t data_length;
 };
 
 class SensorBase
 {
 public:
-  explicit SensorBase(const unsigned int sen_len, const SensorType sensor_type);
+  explicit SensorBase(const uint16_t sen_len, const SensorType sensor_type);
   virtual ~SensorBase();
   bool init();
 #ifdef HAVE_ROS
@@ -44,8 +48,8 @@ public:
 #endif
   bool unpack(uint8_t* buf);
   void* get_data();
-  unsigned int get_timestamp();
-  unsigned int get_len()
+  uint32_t get_timestamp();
+  uint16_t get_len()
   {
     return len;
   }
@@ -55,18 +59,18 @@ public:
 protected:
   void extract_timestamp(uint8_t* buf);
   SensorType sensor;
-  unsigned int len;
+  uint16_t len;
   void* dataptr;
-  unsigned int timestamp;
-  unsigned int previous_timestamp;
+  uint32_t timestamp;
+  uint32_t previous_timestamp;
   bool new_data;
-  unsigned int base_sensor_id;
+  uint8_t base_sensor_id;
 
 private:
-  static unsigned int base_sensor_count;
+  static uint8_t base_sensor_count;
 };
 
-typedef SensorBase* (*CreateSensorFn)(const unsigned int sen_len, const SensorType sensor_type);
+typedef SensorBase* (*CreateSensorFn)(const uint16_t sen_len, const SensorType sensor_type);
 
 /* **********************
  *
@@ -101,7 +105,7 @@ public:
   }
 
   void Register(const std::string& sensor_name, CreateSensorFn fnCreate);
-  SensorBase* CreateSensor(const unsigned int sen_len, const SensorType sensor_type);
+  SensorBase* CreateSensor(const uint16_t sen_len, const SensorType sensor_type);
 };
 
 class Device
@@ -109,26 +113,26 @@ class Device
 public:
   Device();
   ~Device();
-  void init(DeviceType dev_type);
+  void init(const DeviceType dev_type);
 #ifdef HAVE_ROS
   void init_ros(ros::NodeHandle& nh);
 #endif
   std::string get_serial();
 
-  std::vector<std::pair<SensorBase*, bool> >& get_sensors()
+  std::vector<std::pair<SensorBase*, bool>>& get_sensors()
   {
     return sensors;
   }
-  std::pair<SensorBase*, bool>* get_sensor_by_idx(size_t idx);
-  void add_sensor(unsigned int data_len, SensorType sensor_type);
+  std::pair<SensorBase*, bool>* get_sensor_by_idx(const uint8_t idx);
+  void add_sensor(const uint16_t data_len, const SensorType sensor_type);
   void publish_all();
 
   DeviceType device;
 
 protected:
-  std::vector<std::pair<SensorBase*, bool> > sensors;
+  std::vector<std::pair<SensorBase*, bool>> sensors;
   // std::vector<bool> active_sensors;
-  size_t cached_max_stream_size;
+  uint32_t cached_max_stream_size;
   bool active_sensor_modified;
   std::string serialnum;
 };
@@ -144,24 +148,24 @@ public:
   void init_ros(ros::NodeHandle& nh);
 #endif
 
-  bool set_device(unsigned int dev_id);
-  void start_streaming(const unsigned int mode = SP_CMD_START_STREAM_CONT_ALL);
+  bool set_device(const uint8_t dev_id);
+  void start_streaming(const uint8_t mode = SP_CMD_START_STREAM_CONT_ALL);
   void update();
   void publish();
   // void process();
-  bool get_data_as_float(float& val, unsigned int did);
-  bool get_data_as_short(short& val, unsigned int did);
-  bool get_data_as_unsigned_short(unsigned short& val, unsigned int did);
-  bool get_data_as_3_float(float& x, float& y, float& z, unsigned int did);
+  bool get_data_as_float(float& val, uint8_t did);
+  bool get_data_as_short(short& val, uint8_t did);
+  bool get_data_as_unsigned_short(unsigned short& val, const uint8_t did);
+  bool get_data_as_3_float(float& x, float& y, float& z, const uint8_t did);
 
-  unsigned int get_timestamp(unsigned int did);
-  void trigger(const unsigned int mode, const unsigned int sen_id);
+  uint32_t get_timestamp(const uint8_t did);
+  void trigger(const uint8_t mode, const uint8_t sen_id);
   void stop_streaming();
 
-  void read_device_types(const unsigned int v);
-  void read_sensor_types(const unsigned int v);
-  bool exists_device(unsigned int dev_id);
-  bool exists_sensor(unsigned int sen_id);
+  void read_device_types(const uint8_t v);
+  void read_sensor_types(const uint8_t v);
+  bool exists_device(const uint8_t dev_id);
+  bool exists_sensor(const uint8_t sen_id);
 
   DeviceType get_device();
   bool verbose;
@@ -170,30 +174,31 @@ protected:
   void config();
   void read_config(uint8_t* buf);
   void read_error(uint8_t* buf);
-  void read_data(uint8_t* buf, size_t did);
+  void read_data(uint8_t* buf, const uint8_t did);
   void read();
 
   // void unpack_data(uint8_t *buf);
-  bool valid_data(uint8_t* buf, size_t buf_len);
-  bool init_device_from_config(uint8_t* buf, size_t config_num);
+  bool valid_data(const uint8_t* buf, const uint32_t buf_len);
+  bool init_device_from_config(uint8_t* buf, const uint8_t config_num);
 
-  bool valid_header(uint8_t* buf);
-  bool valid_checksum(uint8_t* buf, size_t len);
-  uint8_t compute_checksum(uint8_t* buf, size_t len);
+  bool valid_header(const uint8_t* buf);
+  bool valid_checksum(const uint8_t* buf, const uint32_t len);
+  uint8_t compute_checksum(const uint8_t* buf, const uint32_t len);
 
-  void send(uint8_t* buf, size_t len);
-  size_t gen_command(uint8_t* buf, uint8_t destination, uint8_t command, size_t size, uint8_t* data = NULL);
-  size_t gen_master_ping_req(uint8_t* buf);
-  size_t gen_master_config_req(uint8_t* buf);
-  size_t gen_sensor_trigger_req(uint8_t* buf, const unsigned int sen_id);
-  size_t gen_master_trigger_req(uint8_t* buf);
-  size_t gen_topo_req(uint8_t* buf);
-  size_t gen_serialnum_req(uint8_t* buf);
+  void send(const uint8_t* buf, const uint32_t len);
+  uint32_t gen_command(uint8_t* buf, const uint8_t destination, const uint8_t command, const uint32_t size,
+                       const uint8_t* data = NULL);
+  uint32_t gen_master_ping_req(uint8_t* buf);
+  uint32_t gen_master_config_req(uint8_t* buf);
+  uint32_t gen_sensor_trigger_req(uint8_t* buf, uint8_t sen_id);
+  uint32_t gen_master_trigger_req(uint8_t* buf);
+  uint32_t gen_topo_req(uint8_t* buf);
+  uint32_t gen_serialnum_req(uint8_t* buf);
 
-  unsigned int version;
+  uint8_t version;
   bool streaming;
-  std::map<unsigned int, DeviceType> device_types;
-  std::map<unsigned int, SensorType> sensor_types;
+  std::map<uint8_t, DeviceType> device_types;
+  std::map<uint16_t, SensorType> sensor_types;
   SerialCom* s;
   std::string d_filename;
   std::string s_filename;

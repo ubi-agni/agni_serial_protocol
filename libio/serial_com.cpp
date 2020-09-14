@@ -164,7 +164,7 @@ size_t SerialCom::readFrame(uint8_t *buf, size_t len)
 	return index;
 }
 
-size_t SerialCom::writeFrame(uint8_t *buf, size_t len)
+size_t SerialCom::writeFrame(const uint8_t *buf, size_t len)
 {
 	if (!connected) throw std::runtime_error("sc: not connected to write");
 

@@ -10,9 +10,9 @@
 
 namespace serial_protocol
 {
-unsigned int SensorBase::base_sensor_count{ 0 };
+uint8_t SensorBase::base_sensor_count{ 0 };
 
-SensorBase::SensorBase(const unsigned int sen_len, const SensorType sensor_type)
+SensorBase::SensorBase(const uint16_t sen_len, const SensorType sensor_type)
   : sensor(sensor_type), len(0), dataptr(0), timestamp(0), previous_timestamp(0)
 {
   // check data len consistency to registered len
@@ -60,7 +60,7 @@ void* SensorBase::get_data()
   return dataptr;
 }
 
-unsigned int SensorBase::get_timestamp()
+uint32_t SensorBase::get_timestamp()
 {
   return timestamp;
 }
@@ -102,7 +102,7 @@ void SensorFactory::Register(const std::string& sensor_name, CreateSensorFn fnCr
   factory_map[sensor_name] = fnCreate;
 }
 
-SensorBase* SensorFactory::CreateSensor(const unsigned int sen_len, const SensorType sensor_type)
+SensorBase* SensorFactory::CreateSensor(const uint16_t sen_len, const SensorType sensor_type)
 {
   SensorFactoryMap::iterator it = factory_map.find(sensor_type.name);
   if (it != factory_map.end())
@@ -117,14 +117,14 @@ Device::Device()
   device.id = 0;
 }
 
-void Device::init(DeviceType dev_type)
+void Device::init(const DeviceType dev_type)
 {
   device = dev_type;
 }
 
 Device::~Device()
 {
-  std::vector<std::pair<SensorBase*, bool> >::iterator s;
+  std::vector<std::pair<SensorBase*, bool>>::iterator s;
   for (s = sensors.begin(); s != sensors.end(); s++)
   {
     delete (*s).first;
@@ -133,7 +133,7 @@ Device::~Device()
 
 void Device::init_ros(ros::NodeHandle& nh)
 {
-  std::vector<std::pair<SensorBase*, bool> >::iterator s;
+  std::vector<std::pair<SensorBase*, bool>>::iterator s;
   for (s = sensors.begin(); s != sensors.end(); s++)
   {
     SensorBase* sensor = (*s).first;
@@ -146,7 +146,7 @@ std::string Device::get_serial()
   return serialnum;
 }
 
-std::pair<SensorBase*, bool>* Device::get_sensor_by_idx(size_t idx)
+std::pair<SensorBase*, bool>* Device::get_sensor_by_idx(const uint8_t idx)
 {
   int sensor_idx = idx - 1;
   if (sensor_idx >= 0 && sensor_idx < (int)sensors.size())
@@ -155,7 +155,7 @@ std::pair<SensorBase*, bool>* Device::get_sensor_by_idx(size_t idx)
     return NULL;
 }
 
-void Device::add_sensor(unsigned int data_len, const SensorType sensor_type)
+void Device::add_sensor(const uint16_t data_len, const SensorType sensor_type)
 {
   try
   {
@@ -209,7 +209,7 @@ void Device::add_sensor(unsigned int data_len, const SensorType sensor_type)
 
 void Device::publish_all()
 {
-  std::vector<std::pair<SensorBase*, bool> >::iterator it;
+  std::vector<std::pair<SensorBase*, bool>>::iterator it;
   for (it = sensors.begin(); it != sensors.end(); it++)
   {
     std::pair<SensorBase*, bool> item = *it;
@@ -258,11 +258,11 @@ void SerialProtocolBase::config()
 {
   uint8_t send_buf[SP_MAX_BUF_SIZE];
   // request config
-  size_t send_buf_len = gen_master_config_req(send_buf);
+  uint32_t send_buf_len = gen_master_config_req(send_buf);
   try
   {
     // printf("sp: fake write\n");
-    s->writeFrame(send_buf, send_buf_len);
+    s->writeFrame(send_buf, (size_t)send_buf_len);
   }
   catch (const std::exception& e)
   {
@@ -272,20 +272,20 @@ void SerialProtocolBase::config()
   read();
 }
 
-bool SerialProtocolBase::init_device_from_config(uint8_t* buf, size_t config_num)
+bool SerialProtocolBase::init_device_from_config(uint8_t* buf, const uint8_t config_num)
 {
-  for (size_t i = 0; i < config_num; i++)
+  for (uint8_t i = 0; i < config_num; i++)
   {
     uint8_t* config_buf = buf + i * SP_SDSC_SIZE * sizeof(uint8_t);
-    unsigned int sen_id = config_buf[0] + config_buf[1] * 256;
-    unsigned int sen_len = config_buf[2] + config_buf[3] * 256;
+    uint16_t sen_type = config_buf[0] + config_buf[1] * 256;
+    uint16_t sen_len = config_buf[2] + config_buf[3] * 256;
     if (verbose)
-      printf("sp: for sensor %lu, found sen_id %u and sen_len %u\n", i, sen_id, sen_len);
-    if (exists_sensor(sen_id))
+      printf("sp: for sensor %d, found sen_type %u and sen_len %u\n", i, sen_type, sen_len);
+    if (exists_sensor(sen_type))
     {
       try
       {
-        dev.add_sensor(sen_len, sensor_types[sen_id]);
+        dev.add_sensor(sen_len, sensor_types[sen_type]);
       }
       catch (const std::exception& e)
       {
@@ -299,7 +299,7 @@ bool SerialProtocolBase::init_device_from_config(uint8_t* buf, size_t config_num
   return true;
 }
 
-bool SerialProtocolBase::set_device(unsigned int dev_id)
+bool SerialProtocolBase::set_device(const uint8_t dev_id)
 {
   if (exists_device(dev_id))
   {
@@ -310,32 +310,32 @@ bool SerialProtocolBase::set_device(unsigned int dev_id)
     return false;
 }
 
-bool SerialProtocolBase::valid_data(uint8_t* buf, size_t buf_len)
+bool SerialProtocolBase::valid_data(const uint8_t* buf, const uint32_t buf_len)
 {
   return valid_header(buf) && valid_checksum(buf, buf_len);
 }
 
-bool SerialProtocolBase::valid_header(uint8_t* buf)
+bool SerialProtocolBase::valid_header(const uint8_t* buf)
 {
   return (uint16_t)(buf[0] * 256 + buf[1]) == SP_HEADER;
 }
 
-bool SerialProtocolBase::valid_checksum(uint8_t* buf, size_t len)
+bool SerialProtocolBase::valid_checksum(const uint8_t* buf, const uint32_t len)
 {
   return compute_checksum(buf, len - 1) == buf[len - 1];
 }
 
-uint8_t SerialProtocolBase::compute_checksum(uint8_t* buf, size_t len)
+uint8_t SerialProtocolBase::compute_checksum(const uint8_t* buf, const uint32_t len)
 {
   uint8_t xorsum = 0;
-  for (size_t i = 0; i < len; i++)  // do xor for each data byte
+  for (uint32_t i = 0; i < len; i++)  // do xor for each data byte
   {
     xorsum = xorsum ^ buf[i];
   }
   return xorsum;
 }
 
-void SerialProtocolBase::read_device_types(const unsigned int v)
+void SerialProtocolBase::read_device_types(const uint8_t v)
 {
   // read params for given version
   if (d_filename != "")
@@ -353,7 +353,7 @@ void SerialProtocolBase::read_device_types(const unsigned int v)
         {
           // std::string protocol_version_str = it->first.as<std::string>();
           // std::string protocol_version_str =
-          unsigned int protocol_version = it->first.as<unsigned int>();
+          uint8_t protocol_version = (uint8_t)it->first.as<int>();
           if (verbose)
             std::cout << "sp: found specs for version " << protocol_version << "\n";
           const YAML::Node& version_node = it->second;
@@ -374,10 +374,12 @@ void SerialProtocolBase::read_device_types(const unsigned int v)
                 DeviceType dt;
                 std::stringstream sstr("");
                 sstr << std::hex << device_types_item["type"].as<std::string>();
-                sstr >> dt.id;
+                int did;
+                sstr >> did;
+                dt.id = (uint8_t)did;
                 dt.name = device_types_item["name"].as<std::string>();
                 if (verbose)
-                  std::cout << dt.id << " named: " << dt.name << "\n";
+                  std::cout << (int)dt.id << " named: " << dt.name << "\n";
                 dt.description = device_types_item["description"].as<std::string>();
                 device_types[dt.id] = dt;
               }
@@ -386,7 +388,7 @@ void SerialProtocolBase::read_device_types(const unsigned int v)
             }
             else
             {
-              std::cerr << "sp: yaml does not contain specs for version " << v << "\n";
+              std::cerr << "sp: yaml does not contain specs for version " << (int)v << "\n";
             }
           }
           else
@@ -421,7 +423,7 @@ void SerialProtocolBase::read_device_types(const unsigned int v)
   device_types[dt.id] = dt;
 }
 
-void SerialProtocolBase::read_sensor_types(const unsigned int v)
+void SerialProtocolBase::read_sensor_types(const uint8_t v)
 {
   // read params for given version
   if (s_filename != "")
@@ -437,9 +439,9 @@ void SerialProtocolBase::read_sensor_types(const unsigned int v)
         YAML::Node agni_serial_protocol = root["agni_serial_protocol"];
         for (YAML::iterator it = agni_serial_protocol.begin(); it != agni_serial_protocol.end(); ++it)
         {
-          unsigned int protocol_version = it->first.as<unsigned int>();
+          uint8_t protocol_version = (uint8_t)it->first.as<int>();
           if (verbose)
-            std::cout << "sp: found specs for version " << protocol_version << "\n";
+            std::cout << "sp: found specs for version " << (int)protocol_version << "\n";
           const YAML::Node& version_node = it->second;
           if (verbose)
             std::cout << "sp: extract version\n";
@@ -458,14 +460,16 @@ void SerialProtocolBase::read_sensor_types(const unsigned int v)
                 SensorType st;
                 std::stringstream sstr("");
                 sstr << std::hex << sensor_types_item["uid"].as<std::string>();
-                sstr >> st.id;
+                int type_id;
+                sstr >> type_id;
+                st.id = (uint16_t)type_id;
                 st.name = sensor_types_item["name"].as<std::string>();
                 st.manufacturer = sensor_types_item["manufacturer"].as<std::string>();
                 st.description = sensor_types_item["description"].as<std::string>();
                 st.parser_library = sensor_types_item["parser_library"].as<std::string>();
-                st.data_length = sensor_types_item["data_length"].as<unsigned int>();
+                st.data_length = (uint16_t)sensor_types_item["data_length"].as<int>();
                 if (verbose)
-                  std::cout << st.id << " named: " << st.name << " with length " << st.data_length << "\n";
+                  std::cout << (int)st.id << " named: " << st.name << " with length " << st.data_length << "\n";
                 sensor_types[st.id] = st;
               }
               // success = true;
@@ -473,7 +477,7 @@ void SerialProtocolBase::read_sensor_types(const unsigned int v)
             }
             else
             {
-              std::cerr << "sp: yaml does not contain specs for version " << v << "\n";
+              std::cerr << "sp: yaml does not contain specs for version " << (int)v << "\n";
             }
           }
           else
@@ -513,12 +517,12 @@ void SerialProtocolBase::read_sensor_types(const unsigned int v)
   sensor_types[st.id] = st;
 }
 
-bool SerialProtocolBase::exists_device(unsigned int dev_id)
+bool SerialProtocolBase::exists_device(const uint8_t dev_id)
 {
   return device_types.find(dev_id) != device_types.end();
 }
 
-bool SerialProtocolBase::exists_sensor(unsigned int sen_id)
+bool SerialProtocolBase::exists_sensor(const uint8_t sen_id)
 {
   return sensor_types.find(sen_id) != sensor_types.end();
 }
@@ -528,12 +532,12 @@ DeviceType SerialProtocolBase::get_device()
   return dev.device;
 }
 
-void SerialProtocolBase::trigger(const unsigned int mode, const unsigned int sen_id)
+void SerialProtocolBase::trigger(const uint8_t mode, const uint8_t sen_id)
 {
   if (!streaming)
   {
     uint8_t send_buf[5];
-    size_t send_buf_len = 0;
+    uint32_t send_buf_len = 0;
     if (sen_id == 0)
     {
       send_buf_len = gen_master_trigger_req(send_buf);
@@ -618,7 +622,7 @@ void SerialProtocolBase::read_config(uint8_t* buf)
     throw std::runtime_error(std::string("sp: device did not answer enough data"));
   }
   // read versions
-  int version = (int)buf[SP_VERSION_OFFSET];
+  uint8_t version = (uint8_t)buf[SP_VERSION_OFFSET];
   if (version > 0 and version <= SP_MAX_KNOWN_VERSION)
   {
     read_device_types(version);
@@ -644,7 +648,7 @@ void SerialProtocolBase::read_config(uint8_t* buf)
   }
 
   // get how much more config comes
-  size_t config_num = (size_t)buf[SP_SDSC_OFFSET];
+  uint8_t config_num = (uint8_t)buf[SP_SDSC_OFFSET];
   // read next part of the config message
   size_t config_len = 0;
   try
@@ -657,7 +661,7 @@ void SerialProtocolBase::read_config(uint8_t* buf)
     throw std::runtime_error(std::string("sp: device failed to answer"));
   }
   // check data
-  if (config_len != config_num * SP_SDSC_SIZE + SP_CHKSUM_LEN)
+  if (config_len != (size_t)(config_num * SP_SDSC_SIZE + SP_CHKSUM_LEN))
   {
     std::cerr << "sp: read " << config_len << " bytes of config_len instead of "
               << config_num * SP_SDSC_SIZE + SP_CHKSUM_LEN << std::endl;
@@ -678,7 +682,7 @@ void SerialProtocolBase::read_config(uint8_t* buf)
   }
 }
 
-void SerialProtocolBase::read_data(uint8_t* buf, size_t did)
+void SerialProtocolBase::read_data(uint8_t* buf, const uint8_t did)
 {
   // check sensor existence to compute awaited len
   std::pair<SensorBase*, bool>* sensor = dev.get_sensor_by_idx(did);
@@ -732,7 +736,7 @@ void SerialProtocolBase::read_error(uint8_t* buf)
 {
   size_t error_len = 0;
   error_len = s->readFrame(buf + SP_ERR_TYP_OFFSET, SP_ERR_TYP_LEN + SP_CHKSUM_LEN);
-  if (error_len == 2)
+  if (error_len == SP_ERR_TYP_LEN + SP_CHKSUM_LEN)
   {
     uint8_t error_code = buf[SP_ERR_TYP_OFFSET];
     std::cerr << "sp: device sent an error:";
@@ -762,10 +766,10 @@ void SerialProtocolBase::read_error(uint8_t* buf)
         if (error_code > 0 && error_code < SP_ERR_STRMAX)
         {
           // read the error string
-          size_t str_len = error_code;  // include the checksum
           char strbuf[error_code + 1];  // include null terminating char
           // strbuf[0] = (char)buf[ERROR_OFFSET+2];  // first string was already read
           // read str_len because one character was already read but checksum is still to be read
+          uint8_t str_len = error_code;  // include the checksum
           s->readFrame(buf + SP_ERR_TYP_OFFSET + SP_ERR_TYP_LEN + SP_CHKSUM_LEN,
                        str_len);  // read the reminder of the string
           if (!valid_checksum(buf, SP_ERR_TYP_OFFSET + SP_ERR_TYP_LEN + str_len + SP_CHKSUM_LEN))
@@ -871,7 +875,7 @@ void SerialProtocolBase::read()
   }
 }
 
-bool SerialProtocolBase::get_data_as_float(float& val, unsigned int did)
+bool SerialProtocolBase::get_data_as_float(float& val, const uint8_t did)
 {
   // check sensor existence
   std::pair<SensorBase*, bool>* sensor = dev.get_sensor_by_idx(did);
@@ -886,7 +890,7 @@ bool SerialProtocolBase::get_data_as_float(float& val, unsigned int did)
   return false;
 }
 
-bool SerialProtocolBase::get_data_as_3_float(float& x, float& y, float& z, unsigned int did)
+bool SerialProtocolBase::get_data_as_3_float(float& x, float& y, float& z, const uint8_t did)
 {
   // check sensor existence
   std::pair<SensorBase*, bool>* sensor = dev.get_sensor_by_idx(did);
@@ -907,7 +911,7 @@ bool SerialProtocolBase::get_data_as_3_float(float& x, float& y, float& z, unsig
   return false;
 }
 
-bool SerialProtocolBase::get_data_as_short(short& val, unsigned int did)
+bool SerialProtocolBase::get_data_as_short(short& val, const uint8_t did)
 {
   // check sensor existence
   std::pair<SensorBase*, bool>* sensor = dev.get_sensor_by_idx(did);
@@ -919,7 +923,7 @@ bool SerialProtocolBase::get_data_as_short(short& val, unsigned int did)
   return false;
 }
 
-bool SerialProtocolBase::get_data_as_unsigned_short(unsigned short& val, unsigned int did)
+bool SerialProtocolBase::get_data_as_unsigned_short(unsigned short& val, const uint8_t did)
 {
   // check sensor existence
   std::pair<SensorBase*, bool>* sensor = dev.get_sensor_by_idx(did);
@@ -931,10 +935,10 @@ bool SerialProtocolBase::get_data_as_unsigned_short(unsigned short& val, unsigne
   return false;
 }
 
-unsigned int SerialProtocolBase::get_timestamp(unsigned int did)
+uint32_t SerialProtocolBase::get_timestamp(const uint8_t did)
 {
   // check sensor existence
-  unsigned int t = 0;
+  uint32_t t = 0;
   std::pair<SensorBase*, bool>* sensor = dev.get_sensor_by_idx(did);
   if (sensor)
   {
@@ -993,10 +997,10 @@ void SerialProtocolBase::unpack_data(uint8_t *buf, size_t len)
   //valid_checksum();
 }*/
 
-void SerialProtocolBase::start_streaming(const unsigned int mode)
+void SerialProtocolBase::start_streaming(const uint8_t mode)
 {
   uint8_t buf[5];
-  size_t buf_len = 0;
+  uint32_t buf_len = 0;
   bool planned_streaming = false;
   switch (mode)
   {
@@ -1027,7 +1031,7 @@ void SerialProtocolBase::start_streaming(const unsigned int mode)
 void SerialProtocolBase::stop_streaming()
 {
   uint8_t buf[5];
-  size_t buf_len;
+  uint32_t buf_len;
   buf_len = gen_command(buf, SP_DID_MASTER, SP_CMD_STOP_STREAM, 0);
   try
   {
@@ -1042,11 +1046,11 @@ void SerialProtocolBase::stop_streaming()
   }
 }
 
-void SerialProtocolBase::send(uint8_t* buf, size_t len)
+void SerialProtocolBase::send(const uint8_t* buf, const uint32_t len)
 {
   try
   {
-    s->writeFrame(buf, len);
+    s->writeFrame(buf, (size_t)len);
   }
   catch (const std::exception& e)
   {
@@ -1055,9 +1059,11 @@ void SerialProtocolBase::send(uint8_t* buf, size_t len)
   }
 }
 
-size_t SerialProtocolBase::gen_command(uint8_t* buf, uint8_t destination, uint8_t command, size_t size, uint8_t* data)
+uint32_t SerialProtocolBase::gen_command(uint8_t* buf, const uint8_t destination, const uint8_t command,
+                                         const uint32_t size, const uint8_t* data)
 {
-  // memset(buf, HEADER, HEADER_LEN * sizeof(uint8_t)); // cannot be done due to little endianess
+  // memset(buf, HEADER, HEADER_LEN * sizeof(uint8_t)); // cannot be done due to
+  // little endianess
   memset(buf, SP_HDR1, sizeof(uint8_t));
   memset(buf + 1, SP_HDR2, sizeof(uint8_t));
   memset(buf + SP_DID_OFFSET, destination, sizeof(uint8_t));
@@ -1065,43 +1071,43 @@ size_t SerialProtocolBase::gen_command(uint8_t* buf, uint8_t destination, uint8_
 
   if (size && data != NULL)
   {
-    memset(buf + SP_CMD_DATA_SZ_OFFSET, size, 1 * sizeof(uint8_t));
-    for (unsigned int i = 0; i < size && i + SP_CMD_DATA_OFFSET < SP_MAX_BUF_SIZE; i++)
+    memset(buf + SP_CMD_DATA_SZ_OFFSET, (uint16_t)size, sizeof(uint16_t));
+    for (uint32_t i = 0; i < size && i + SP_CMD_DATA_OFFSET < SP_MAX_BUF_SIZE; i++)
     {
       buf[i + SP_CMD_DATA_OFFSET] = data[i];
     }
   }
-  unsigned int extra_size = (size > 0 ? 1 : 0) + size;
+  uint32_t extra_size = (size > 0 ? SP_CMD_DATA_SZ_LEN : 0) + size;
   buf[SP_CMD_DATA_SZ_OFFSET + extra_size] = compute_checksum(buf, SP_CMD_DATA_SZ_OFFSET + extra_size);
-  return SP_CMD_DATA_SZ_OFFSET + extra_size + 1;
+  return SP_CMD_DATA_SZ_OFFSET + extra_size + SP_CHKSUM_LEN;
 }
 
-size_t SerialProtocolBase::gen_master_config_req(uint8_t* buf)
+uint32_t SerialProtocolBase::gen_master_config_req(uint8_t* buf)
 {
   return gen_command(buf, SP_DID_MASTER, SP_CMD_CONFRQ, 0);
 }
 
-size_t SerialProtocolBase::gen_master_ping_req(uint8_t* buf)
+uint32_t SerialProtocolBase::gen_master_ping_req(uint8_t* buf)
 {
   return gen_command(buf, SP_DID_MASTER, SP_CMD_ALIVE, 0);
 }
 
-size_t SerialProtocolBase::gen_master_trigger_req(uint8_t* buf)
+uint32_t SerialProtocolBase::gen_master_trigger_req(uint8_t* buf)
 {
   return gen_command(buf, SP_DID_MASTER, SP_CMD_START_STREAM_TRIG_ALL, 0);
 }
 
-size_t SerialProtocolBase::gen_sensor_trigger_req(uint8_t* buf, const unsigned int sen_id)
+uint32_t SerialProtocolBase::gen_sensor_trigger_req(uint8_t* buf, uint8_t sen_id)
 {
-  return gen_command(buf, (uint8_t)sen_id, SP_CMD_START_STREAM_TRIG_SEL, 0);
+  return gen_command(buf, sen_id, SP_CMD_START_STREAM_TRIG_SEL, 0);
 }
 
-size_t SerialProtocolBase::gen_topo_req(uint8_t* buf)
+uint32_t SerialProtocolBase::gen_topo_req(uint8_t* buf)
 {
   return gen_command(buf, SP_DID_MASTER, SP_CMD_TOPORQ, 0);
 }
 
-size_t SerialProtocolBase::gen_serialnum_req(uint8_t* buf)
+uint32_t SerialProtocolBase::gen_serialnum_req(uint8_t* buf)
 {
   return gen_command(buf, SP_DID_MASTER, SP_CMD_SERIAL, 0);
 }

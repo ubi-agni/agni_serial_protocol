@@ -34,9 +34,9 @@ namespace serial_protocol
 class Sensor_Default : public SensorBase
 {
 public:
-  Sensor_Default(const unsigned int sen_len, const SensorType sensor_type);
+  Sensor_Default(const uint16_t sen_len, const SensorType sensor_type);
   void publish();
-  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type)
+  static SensorBase* Create(const uint16_t sen_len, const SensorType sensor_type)
   {
     return new Sensor_Default(sen_len, sensor_type);
   }
@@ -58,8 +58,7 @@ private:
 
 unsigned int Sensor_Default::sensor_count{ 0 };
 // IMPL
-Sensor_Default::Sensor_Default(const unsigned int sen_len, const SensorType sensor_type)
-  : SensorBase(sen_len, sensor_type)
+Sensor_Default::Sensor_Default(const uint16_t sen_len, const SensorType sensor_type) : SensorBase(sen_len, sensor_type)
 {
   sensor_id = ++sensor_count;
 }
@@ -117,9 +116,9 @@ bool Sensor_Default::parse()
 class Sensor_IMU_MPU9250_Acc : public SensorBase
 {
 public:
-  Sensor_IMU_MPU9250_Acc(const unsigned int sen_len, const SensorType sensor_type);
+  Sensor_IMU_MPU9250_Acc(const uint16_t sen_len, const SensorType sensor_type);
   void publish();
-  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type)
+  static SensorBase* Create(const uint16_t sen_len, const SensorType sensor_type)
   {
     return new Sensor_IMU_MPU9250_Acc(sen_len, sensor_type);
   }
@@ -136,7 +135,7 @@ private:
 };
 
 // IMPL
-Sensor_IMU_MPU9250_Acc::Sensor_IMU_MPU9250_Acc(const unsigned int sen_len, const SensorType sensor_type)
+Sensor_IMU_MPU9250_Acc::Sensor_IMU_MPU9250_Acc(const uint16_t sen_len, const SensorType sensor_type)
   : SensorBase(sen_len, sensor_type)
 {
 }
@@ -192,7 +191,7 @@ bool Sensor_IMU_MPU9250_Acc::parse()
 class Sensor_IMU : public SensorBase
 {
 public:
-  Sensor_IMU(const unsigned int sen_len, const SensorType sensor_type);
+  Sensor_IMU(const uint16_t sen_len, const SensorType sensor_type);
   void publish();
 #ifdef HAVE_ROS
   void init_ros(ros::NodeHandle& nh);
@@ -215,7 +214,7 @@ private:
 };
 
 // IMPL
-Sensor_IMU::Sensor_IMU(const unsigned int sen_len, const SensorType sensor_type) : SensorBase(sen_len, sensor_type)
+Sensor_IMU::Sensor_IMU(const uint16_t sen_len, const SensorType sensor_type) : SensorBase(sen_len, sensor_type)
 {
 }
 
@@ -265,8 +264,8 @@ void Sensor_IMU::publish()
 class Sensor_MPU9250 : public Sensor_IMU
 {
 public:
-  Sensor_MPU9250(const unsigned int sen_len, const SensorType sensor_type);
-  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type)
+  Sensor_MPU9250(const uint16_t sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const uint16_t sen_len, const SensorType sensor_type)
   {
     return new Sensor_MPU9250(sen_len, sensor_type);
   }
@@ -275,8 +274,7 @@ private:
   bool parse();
 };
 
-Sensor_MPU9250::Sensor_MPU9250(const unsigned int sen_len, const SensorType sensor_type)
-  : Sensor_IMU(sen_len, sensor_type)
+Sensor_MPU9250::Sensor_MPU9250(const uint16_t sen_len, const SensorType sensor_type) : Sensor_IMU(sen_len, sensor_type)
 {
 }
 
@@ -312,8 +310,8 @@ bool Sensor_MPU9250::parse()
 class Sensor_BNO055 : public Sensor_IMU
 {
 public:
-  Sensor_BNO055(const unsigned int sen_len, const SensorType sensor_type);
-  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type)
+  Sensor_BNO055(const uint16_t sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const uint16_t sen_len, const SensorType sensor_type)
   {
     return new Sensor_BNO055(sen_len, sensor_type);
   }
@@ -322,8 +320,7 @@ private:
   bool parse();
 };
 
-Sensor_BNO055::Sensor_BNO055(const unsigned int sen_len, const SensorType sensor_type)
-  : Sensor_IMU(sen_len, sensor_type)
+Sensor_BNO055::Sensor_BNO055(const uint16_t sen_len, const SensorType sensor_type) : Sensor_IMU(sen_len, sensor_type)
 {
 }
 
@@ -471,8 +468,8 @@ bool Sensor_BNO055::parse()
 class Sensor_BNO08X : public Sensor_IMU
 {
 public:
-  Sensor_BNO08X(const unsigned int sen_len, const SensorType sensor_type);
-  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type)
+  Sensor_BNO08X(const uint16_t sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const uint16_t sen_len, const SensorType sensor_type)
   {
     return new Sensor_BNO08X(sen_len, sensor_type);
   }
@@ -481,8 +478,7 @@ private:
   bool parse();
 };
 
-Sensor_BNO08X::Sensor_BNO08X(const unsigned int sen_len, const SensorType sensor_type)
-  : Sensor_IMU(sen_len, sensor_type)
+Sensor_BNO08X::Sensor_BNO08X(const uint16_t sen_len, const SensorType sensor_type) : Sensor_IMU(sen_len, sensor_type)
 {
 }
 
@@ -526,8 +522,8 @@ bool Sensor_BNO08X::parse()
 class Sensor_BMA255 : public Sensor_IMU
 {
 public:
-  Sensor_BMA255(const unsigned int sen_len, const SensorType sensor_type);
-  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type)
+  Sensor_BMA255(const uint16_t sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const uint16_t sen_len, const SensorType sensor_type)
   {
     return new Sensor_BMA255(sen_len, sensor_type);
   }
@@ -536,8 +532,7 @@ private:
   bool parse();
 };
 
-Sensor_BMA255::Sensor_BMA255(const unsigned int sen_len, const SensorType sensor_type)
-  : Sensor_IMU(sen_len, sensor_type)
+Sensor_BMA255::Sensor_BMA255(const uint16_t sen_len, const SensorType sensor_type) : Sensor_IMU(sen_len, sensor_type)
 {
   qx = qy = qz = 0;
   qw = 1.0;
@@ -573,7 +568,7 @@ bool Sensor_BMA255::parse()
 class Sensor_Baro : public SensorBase
 {
 public:
-  Sensor_Baro(const unsigned int sen_len, const SensorType sensor_type);
+  Sensor_Baro(const uint16_t sen_len, const SensorType sensor_type);
   void publish();
 #ifdef HAVE_ROS
   void init_ros(ros::NodeHandle& nh);
@@ -591,7 +586,7 @@ private:
 };
 
 // IMPL
-Sensor_Baro::Sensor_Baro(const unsigned int sen_len, const SensorType sensor_type) : SensorBase(sen_len, sensor_type)
+Sensor_Baro::Sensor_Baro(const uint16_t sen_len, const SensorType sensor_type) : SensorBase(sen_len, sensor_type)
 {
 }
 
@@ -625,8 +620,8 @@ void Sensor_Baro::publish()
 class Sensor_MPL115A2 : public Sensor_Baro
 {
 public:
-  Sensor_MPL115A2(const unsigned int sen_len, const SensorType sensor_type);
-  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type)
+  Sensor_MPL115A2(const uint16_t sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const uint16_t sen_len, const SensorType sensor_type)
   {
     return new Sensor_MPL115A2(sen_len, sensor_type);
   }
@@ -635,7 +630,7 @@ private:
   bool parse();
 };
 
-Sensor_MPL115A2::Sensor_MPL115A2(const unsigned int sen_len, const SensorType sensor_type)
+Sensor_MPL115A2::Sensor_MPL115A2(const uint16_t sen_len, const SensorType sensor_type)
   : Sensor_Baro(sen_len, sensor_type)
 {
 }
@@ -661,7 +656,7 @@ bool Sensor_MPL115A2::parse()
 class Sensor_Joy : public SensorBase
 {
 public:
-  Sensor_Joy(const unsigned int sen_len, const SensorType sensor_type);
+  Sensor_Joy(const uint16_t sen_len, const SensorType sensor_type);
   void publish();
 #ifdef HAVE_ROS
   void init_ros(ros::NodeHandle& nh);
@@ -680,7 +675,7 @@ private:
 };
 
 // IMPL
-Sensor_Joy::Sensor_Joy(const unsigned int sen_len, const SensorType sensor_type) : SensorBase(sen_len, sensor_type)
+Sensor_Joy::Sensor_Joy(const uint16_t sen_len, const SensorType sensor_type) : SensorBase(sen_len, sensor_type)
 {
 }
 
@@ -726,8 +721,8 @@ void Sensor_Joy::publish()
 class Sensor_AS5013 : public Sensor_Joy
 {
 public:
-  Sensor_AS5013(const unsigned int sen_len, const SensorType sensor_type);
-  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type)
+  Sensor_AS5013(const uint16_t sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const uint16_t sen_len, const SensorType sensor_type)
   {
     return new Sensor_AS5013(sen_len, sensor_type);
   }
@@ -736,8 +731,7 @@ private:
   bool parse();
 };
 
-Sensor_AS5013::Sensor_AS5013(const unsigned int sen_len, const SensorType sensor_type)
-  : Sensor_Joy(sen_len, sensor_type)
+Sensor_AS5013::Sensor_AS5013(const uint16_t sen_len, const SensorType sensor_type) : Sensor_Joy(sen_len, sensor_type)
 {
   joy_pos.resize(2);
   joy_buttons.clear();
@@ -768,8 +762,8 @@ bool Sensor_AS5013::parse()
 class Sensor_AS5013y : public Sensor_Joy
 {
 public:
-  Sensor_AS5013y(const unsigned int sen_len, const SensorType sensor_type);
-  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type)
+  Sensor_AS5013y(const uint16_t sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const uint16_t sen_len, const SensorType sensor_type)
   {
     return new Sensor_AS5013y(sen_len, sensor_type);
   }
@@ -778,8 +772,7 @@ private:
   bool parse();
 };
 
-Sensor_AS5013y::Sensor_AS5013y(const unsigned int sen_len, const SensorType sensor_type)
-  : Sensor_Joy(sen_len, sensor_type)
+Sensor_AS5013y::Sensor_AS5013y(const uint16_t sen_len, const SensorType sensor_type) : Sensor_Joy(sen_len, sensor_type)
 {
   joy_pos.resize(2);
   joy_pos[0] = 0;
@@ -810,7 +803,7 @@ bool Sensor_AS5013y::parse()
 class Sensor_Tactile : public SensorBase
 {
 public:
-  Sensor_Tactile(const unsigned int sen_len, const SensorType sensor_type);
+  Sensor_Tactile(const uint16_t sen_len, const SensorType sensor_type);
   void publish();
 #ifdef HAVE_ROS
   void init_ros(ros::NodeHandle& nh);
@@ -829,8 +822,7 @@ private:
 };
 
 // IMPL
-Sensor_Tactile::Sensor_Tactile(const unsigned int sen_len, const SensorType sensor_type)
-  : SensorBase(sen_len, sensor_type)
+Sensor_Tactile::Sensor_Tactile(const uint16_t sen_len, const SensorType sensor_type) : SensorBase(sen_len, sensor_type)
 {
 }
 
@@ -872,8 +864,8 @@ void Sensor_Tactile::publish()
 class Sensor_MID_tactile_fingertip_teensy : public Sensor_Tactile
 {
 public:
-  Sensor_MID_tactile_fingertip_teensy(const unsigned int sen_len, const SensorType sensor_type);
-  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type)
+  Sensor_MID_tactile_fingertip_teensy(const uint16_t sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const uint16_t sen_len, const SensorType sensor_type)
   {
     return new Sensor_MID_tactile_fingertip_teensy(sen_len, sensor_type);
   }
@@ -885,7 +877,7 @@ private:
   unsigned int num_taxels;
 };
 
-Sensor_MID_tactile_fingertip_teensy::Sensor_MID_tactile_fingertip_teensy(const unsigned int sen_len,
+Sensor_MID_tactile_fingertip_teensy::Sensor_MID_tactile_fingertip_teensy(const uint16_t sen_len,
                                                                          const SensorType sensor_type)
   : Sensor_Tactile(sen_len, sensor_type)
 {
@@ -923,12 +915,13 @@ bool Sensor_MID_tactile_fingertip_teensy::parse()
 class Sensor_iobject_myrmex : public Sensor_Tactile
 {
 public:
-  Sensor_iobject_myrmex(const unsigned int sen_len, const SensorType sensor_type);
-  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type)
+  Sensor_iobject_myrmex(const uint16_t sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const uint16_t sen_len, const SensorType sensor_type)
   {
     return new Sensor_iobject_myrmex(sen_len, sensor_type);
   }
-  void publish();  // overloaded to permit re-organize the low-level data before publishing
+  void publish();  // overloaded to permit re-organize the low-level data before
+                   // publishing
 private:
   bool parse();
 #ifdef HAVE_ROS
@@ -947,7 +940,7 @@ private:
 #endif
 };
 
-Sensor_iobject_myrmex::Sensor_iobject_myrmex(const unsigned int sen_len, const SensorType sensor_type)
+Sensor_iobject_myrmex::Sensor_iobject_myrmex(const uint16_t sen_len, const SensorType sensor_type)
   : Sensor_Tactile(sen_len, sensor_type)
 {
   // sen_len = 120 => 2*60 bytes => 60 ADC of 16 channels each
@@ -1074,8 +1067,8 @@ bool Sensor_iobject_myrmex::parse()
 class Sensor_BMP388modified_pressure_array : public Sensor_Tactile
 {
 public:
-  Sensor_BMP388modified_pressure_array(const unsigned int sen_len, const SensorType sensor_type);
-  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type)
+  Sensor_BMP388modified_pressure_array(const uint16_t sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const uint16_t sen_len, const SensorType sensor_type)
   {
     return new Sensor_BMP388modified_pressure_array(sen_len, sensor_type);
   }
@@ -1096,7 +1089,7 @@ private:
 #endif
 };
 
-Sensor_BMP388modified_pressure_array::Sensor_BMP388modified_pressure_array(const unsigned int sen_len,
+Sensor_BMP388modified_pressure_array::Sensor_BMP388modified_pressure_array(const uint16_t sen_len,
                                                                            const SensorType sensor_type)
   : Sensor_Tactile(sen_len, sensor_type)
 {
@@ -1169,8 +1162,8 @@ bool Sensor_BMP388modified_pressure_array::parse()
 class Sensor_tactile_glove_teensy : public Sensor_Tactile
 {
 public:
-  Sensor_tactile_glove_teensy(const unsigned int sen_len, const SensorType sensor_type);
-  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type)
+  Sensor_tactile_glove_teensy(const uint16_t sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const uint16_t sen_len, const SensorType sensor_type)
   {
     return new Sensor_tactile_glove_teensy(sen_len, sensor_type);
   }
@@ -1186,7 +1179,7 @@ private:
   unsigned int num_taxels;
 };
 
-Sensor_tactile_glove_teensy::Sensor_tactile_glove_teensy(const unsigned int sen_len, const SensorType sensor_type)
+Sensor_tactile_glove_teensy::Sensor_tactile_glove_teensy(const uint16_t sen_len, const SensorType sensor_type)
   : Sensor_Tactile(sen_len, sensor_type)
 {
   // sen_len = x * (1 id + 2 data) => x is the tactile_array size
@@ -1243,7 +1236,7 @@ bool Sensor_tactile_glove_teensy::parse()
 class Sensor_JointState : public SensorBase
 {
 public:
-  Sensor_JointState(const unsigned int sen_len, const SensorType sensor_type);
+  Sensor_JointState(const uint16_t sen_len, const SensorType sensor_type);
   ~Sensor_JointState();
   void publish();
 #ifdef HAVE_ROS
@@ -1268,7 +1261,7 @@ private:
 size_t Sensor_JointState::nb_sensors = 0;
 
 // IMPL
-Sensor_JointState::Sensor_JointState(const unsigned int sen_len, const SensorType sensor_type)
+Sensor_JointState::Sensor_JointState(const uint16_t sen_len, const SensorType sensor_type)
   : SensorBase(sen_len, sensor_type)
 {
   nb_sensors++;
@@ -1329,8 +1322,8 @@ void Sensor_JointState::publish()
 class Sensor_tactile_glove_teensy_bend : public Sensor_JointState
 {
 public:
-  Sensor_tactile_glove_teensy_bend(const unsigned int sen_len, const SensorType sensor_type);
-  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type)
+  Sensor_tactile_glove_teensy_bend(const uint16_t sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const uint16_t sen_len, const SensorType sensor_type)
   {
     return new Sensor_tactile_glove_teensy_bend(sen_len, sensor_type);
   }
@@ -1342,8 +1335,7 @@ private:
   unsigned int num_joints;
 };
 
-Sensor_tactile_glove_teensy_bend::Sensor_tactile_glove_teensy_bend(const unsigned int sen_len,
-                                                                   const SensorType sensor_type)
+Sensor_tactile_glove_teensy_bend::Sensor_tactile_glove_teensy_bend(const uint16_t sen_len, const SensorType sensor_type)
   : Sensor_JointState(sen_len, sensor_type)
 {
   // sen_len = x * (1 id + 2 data) => x is the joint number
@@ -1390,8 +1382,8 @@ bool Sensor_tactile_glove_teensy_bend::parse()
 class Sensor_generic_position_float : public Sensor_JointState
 {
 public:
-  Sensor_generic_position_float(const unsigned int sen_len, const SensorType sensor_type);
-  static SensorBase* Create(const unsigned int sen_len, const SensorType sensor_type)
+  Sensor_generic_position_float(const uint16_t sen_len, const SensorType sensor_type);
+  static SensorBase* Create(const uint16_t sen_len, const SensorType sensor_type)
   {
     return new Sensor_generic_position_float(sen_len, sensor_type);
   }
@@ -1403,7 +1395,7 @@ private:
   unsigned int num_joints;
 };
 
-Sensor_generic_position_float::Sensor_generic_position_float(const unsigned int sen_len, const SensorType sensor_type)
+Sensor_generic_position_float::Sensor_generic_position_float(const uint16_t sen_len, const SensorType sensor_type)
   : Sensor_JointState(sen_len, sensor_type)
 {
   // sen_len = x * (4 B of float) => x is the joint number
