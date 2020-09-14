@@ -12,15 +12,30 @@ find_package(catkin QUIET COMPONENTS
   sensor_msgs
   std_msgs
   tactile_msgs
+  message_generation
 )
 
 find_package(Boost 1.38 REQUIRED COMPONENTS system program_options)
 
 if(catkin_FOUND)
+  add_message_files(DIRECTORY msg FILES
+    PeriodMap.msg
+  )
+
+  # Generate services in the 'srv' folder
+  add_service_files(
+    FILES
+    SetPeriod.srv
+  )
+  
+  generate_messages(
+    DEPENDENCIES std_msgs
+  )
+
   catkin_package(
   #  INCLUDE_DIRS include
   #  LIBRARIES agni_serial_protocol
-  CATKIN_DEPENDS roscpp sensor_msgs std_msgs tactile_msgs
+  CATKIN_DEPENDS roscpp sensor_msgs std_msgs tactile_msgs message_runtime
   #  DEPENDS system_lib
   )
   include_directories(
@@ -45,6 +60,8 @@ if(catkin_FOUND)
     ${catkin_LIBRARIES}
     ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE}
   )
+  
+  
 endif(catkin_FOUND)
 
 add_executable(test_libio test/test_libio.cpp)

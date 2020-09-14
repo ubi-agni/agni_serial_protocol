@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <cstring>
 #include <string>
+#include <sstream>
 #include <iostream>
 #include <utility>
 
@@ -259,7 +260,92 @@ bool SerialProtocolBase::init()
 void SerialProtocolBase::init_ros(ros::NodeHandle& nh)
 {
   dev.init_ros(nh);
+  // initialize set_period services
+  service_set_period = nh.advertiseService("set_period", &SerialProtocolBase::service_set_period_cb, this) ;
 }
+
+bool SerialProtocolBase::service_set_period_cb(agni_serial_protocol::SetPeriod::Request& req,
+                                               agni_serial_protocol::SetPeriod::Response& res)
+{
+  res.result = agni_serial_protocol::SetPeriod::Response::FAILED;
+  size_t size = req.period_map.sensor_ids.size();
+  if (size)
+  {
+    if (size == req.period_map.periods.size())  // valid data with same size
+    {
+      if (size == 1)  // one logical sensor
+      {
+        unsigned int period = req.period_map.periods[0] * 10.0;
+        if (period >= 1 && period < 65536)  // accept value higher than one times 100 us
+        {
+          try
+          {
+            set_period(req.period_map.sensor_ids[0], (uint16_t)period);
+            res.result = agni_serial_protocol::SetPeriod::Response::SUCCESS;
+          }
+          catch (const std::exception& e)
+          {
+            std::stringstream sstr;
+            sstr  << "Failed to set period: " << e.what();
+            res.message = sstr.str();
+          }
+        }
+        else
+        {
+          res.message = "period must be >= 0.1 and < 6553.5 ms";
+        }
+      }
+      else
+      {
+        std::map<uint8_t, uint16_t> period_map;
+        unsigned int invalid_period = 0;
+        for (unsigned int i = 0; i < req.period_map.sensor_ids.size(); ++i)
+        {
+          unsigned int period = req.period_map.periods[i] * 10.0;
+          uint8_t sen_id = req.period_map.sensor_ids[i];
+          if (period >= 1 && period < 65536 && exists_sensor(sen_id))  // accept value higher than one times 100 us
+          {
+            period_map[req.period_map.sensor_ids[i]] = (uint16_t)period;
+          }
+          else
+          {
+            invalid_period++;
+          }
+        }
+        try
+        {
+          set_periods(period_map);
+          
+          if (invalid_period)
+          {
+            std::stringstream sstr;
+            sstr << invalid_period << " out of range periods were skipped";
+            res.message = sstr.str();
+            res.result = agni_serial_protocol::SetPeriod::Response::INCOMPLETE;
+          }
+          else
+            res.result = agni_serial_protocol::SetPeriod::Response::SUCCESS;
+        }
+        catch (const std::exception& e)
+        {
+          std::stringstream sstr;
+          sstr  << "Failed to set period: " << e.what();
+          res.message = sstr.str();
+        }
+      }
+    }
+    else
+    {
+      res.message = "Mismatching sensor_ids/periods size";
+    }
+  }
+  else
+  {
+    res.message = "Set period cannot be empty";
+  }
+  return true;
+}
+
 #endif
 
 void SerialProtocolBase::config()

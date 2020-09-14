@@ -9,6 +9,7 @@
 #include "serial_protocol_defines.h"
 #ifdef HAVE_ROS
 #include <ros/ros.h>
+#include <agni_serial_protocol/SetPeriod.h>
 #endif
 
 // constants
@@ -209,6 +210,12 @@ protected:
   std::string d_filename;
   std::string s_filename;
   Device dev;
+
+#ifdef HAVE_ROS
+  ros::ServiceServer service_set_period;
+  bool service_set_period_cb(agni_serial_protocol::SetPeriod::Request& req,
+                                               agni_serial_protocol::SetPeriod::Response& res);
+#endif
 };
 }
 #endif
