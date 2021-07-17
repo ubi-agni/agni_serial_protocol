@@ -91,6 +91,7 @@ SensorFactory::SensorFactory()
   Register("AS5013_y_position", &Sensor_AS5013y::Create);
   Register("AS5013", &Sensor_AS5013::Create);
   Register("iobject_myrmex", &Sensor_iobject_myrmex::Create);
+  Register("tactile_module_16x16_v2", &Sensor_myrmex_v2::Create);
   Register("tactile_glove_teensy", &Sensor_tactile_glove_teensy::Create);
   Register("tactile_glove_teensy_bend", &Sensor_tactile_glove_teensy_bend::Create);
   Register("BMP388modified_pressure_array", &Sensor_BMP388modified_pressure_array::Create);
