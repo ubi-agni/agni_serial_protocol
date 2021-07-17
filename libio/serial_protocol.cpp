@@ -873,7 +873,11 @@ void SerialProtocolBase::read_data(uint8_t* buf, const uint8_t did)
           if (!sensor->first->unpack(buf + SP_DATA_OFFSET))
             throw std::runtime_error(std::string("sp:sensor data storage not initialized"));
           // parse the data (sensor specific)
+          if (verbose)
+            std::cout << "sp: parsing answer" << std::endl;
           sensor->first->parse();
+          if (verbose)
+            std::cout << "sp: data parsed" << std::endl;
         }
         else
           throw std::runtime_error(std::string("sp:data with invalid checksum"));
@@ -1009,7 +1013,7 @@ void SerialProtocolBase::read()
           if (did >= SP_DID_LID1 && did <= SP_DID_LIDMAX)  // process data
           {
             if (verbose)
-              std::cout << "sp: processing data answer of sensor id " << did << std::endl;
+              std::cout << "sp: processing data answer of sensor id " << (int)did << std::endl;
             read_data(read_buf, did);
           }
           else  // process invalid datagram id
