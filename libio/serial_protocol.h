@@ -13,7 +13,7 @@
 #endif
 
 // constants
-#define SP_MAX_BUF_SIZE 256
+#define SP_MAX_BUF_SIZE 1024
 
 // small shift operations to combine/split bytes
 #define Highbyte(x) (x >> 8)
@@ -211,6 +211,7 @@ protected:
   std::string d_filename;
   std::string s_filename;
   Device dev;
+  uint8_t read_buf[SP_MAX_BUF_SIZE];
 
 #ifdef HAVE_ROS
   ros::ServiceServer service_set_period;
