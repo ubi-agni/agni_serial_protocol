@@ -174,6 +174,7 @@ public:
 
   DeviceType get_device();
   bool verbose;
+  bool throw_at_timeout;
 
 protected:
   void config();

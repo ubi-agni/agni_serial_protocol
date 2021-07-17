@@ -15,11 +15,12 @@ void usage(char* argv[]) {
         << options << std::endl;
 }
 
-bool handleCommandline(std::string &device, bool &verbose, std::string &device_filename,
+bool handleCommandline(std::string &device, bool &verbose, bool &ignore_timeout, std::string &device_filename,
                        std::string &sensor_filename, int argc, char *argv[]) {
   // default input device
   device = "/dev/ttyACM0";
   verbose = false;
+  ignore_timeout = false;
 
   // define processed options
   po::options_description inputs("input options");
@@ -29,6 +30,7 @@ bool handleCommandline(std::string &device, bool &verbose, std::string &device_f
     ("device_file", po::value<std::string>(&device_filename)->implicit_value(device_filename), "device type definition filename");
   options.add_options()
     ("verbose,v", "activate verbosity")
+    ("ignore_timeout", "do not quit a data timeout")
     ("help,h", "Display this help message.")
     ;
   options.add(inputs);
@@ -40,6 +42,7 @@ bool handleCommandline(std::string &device, bool &verbose, std::string &device_f
 
   
   if (map.count("verbose")) verbose = true;
+  if (map.count("ignore_timeout")) ignore_timeout = true;
   
   if (map.count("help")) return true;
   po::notify(map);
@@ -58,12 +61,13 @@ int main(int argc, char **argv)
   std::string sDeviceFilename;
   std::string sSensorFilename;
   bool bVerbose;
+  bool bIgnoreTimeout;
 
   serial_protocol::SerialCom s;
 
   try
   {
-    if (handleCommandline(sSerial, bVerbose, sDeviceFilename, sSensorFilename, argc, argv))
+    if (handleCommandline(sSerial, bVerbose, bIgnoreTimeout, sDeviceFilename, sSensorFilename, argc, argv))
     {
       usage(argv);
       return EXIT_SUCCESS;
@@ -90,6 +94,7 @@ int main(int argc, char **argv)
     std::cout << "creating serial protocol with device_filename " << sDeviceFilename << " and sensor_filename " << sSensorFilename << "\n";  
     serial_protocol::SerialProtocolBase p(&s, sDeviceFilename, sSensorFilename);
     p.verbose = bVerbose;
+    p.throw_at_timeout = !bIgnoreTimeout;
     std::cout << "initializing serial protocol\n";
     if(p.init())
     {

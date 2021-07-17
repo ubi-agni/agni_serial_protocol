@@ -233,7 +233,7 @@ void Device::publish_all()
 
 SerialProtocolBase::SerialProtocolBase(SerialCom* serial_com, const std::string device_filename,
                                        const std::string sensor_filename)
-  : verbose(false), streaming(false), s(serial_com), d_filename(device_filename), s_filename(sensor_filename)
+  : verbose(false), throw_at_timeout(true), streaming(false), s(serial_com), d_filename(device_filename), s_filename(sensor_filename)
 {
 }
 
@@ -1022,8 +1022,15 @@ void SerialProtocolBase::read()
     }
     else
     {
-      // nothing to await from sensor
-      throw std::runtime_error(std::string("sp: nothing to read (did you start streaming ?)"));
+      if (throw_at_timeout)
+      {
+        // nothing to await from sensor
+        throw std::runtime_error(std::string("sp: nothing to read (did you start streaming ?)"));
+      }
+      else
+      {
+        std::cout << "sp: nothing to read" << std::endl;
+      }
     }
   }
   catch (const std::exception& e)

@@ -11,7 +11,7 @@
   </group>
   <group unless="$(arg debug)">
     <node pkg="agni_serial_protocol" name="sp_to_ros" type="agni_serial_protocol_node" respawn="false" output="screen"
-     args="-s $(arg device) --sensor_file $(arg sensor_file) --device_file $(arg device_file)">
+     args="-s $(arg device) --ignore_timeout --sensor_file $(arg sensor_file) --device_file $(arg device_file)">
     </node>
   </group>
 </launch>
