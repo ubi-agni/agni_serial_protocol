@@ -3,6 +3,6 @@
 # and at minimum of one element.
 
 # logical sensor ids to set (starts at 1)
-uint8[] sensor_ids
+uint32[] sensor_ids
 # periods in ms for logical sensors
 float32[] periods
