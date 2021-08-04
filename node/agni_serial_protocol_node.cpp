@@ -80,7 +80,7 @@ int main(int argc, char **argv)
   }
 
   ros::init(argc, argv, "agni_serial_protocol_node", ros::init_options::NoSigintHandler);
-  ros::NodeHandle nh;
+  ros::NodeHandle nh("serial_protocol");
 
   // register Ctrl-C handler
   signal(SIGINT, mySigIntHandler);
