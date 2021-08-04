@@ -10,6 +10,7 @@
 #ifdef HAVE_ROS
 #include <ros/ros.h>
 #include <agni_serial_protocol/SetPeriod.h>
+#include <agni_serial_protocol/GetDeviceMap.h>
 #endif
 
 // constants
@@ -219,8 +220,11 @@ protected:
 
 #ifdef HAVE_ROS
   ros::ServiceServer service_set_period;
+  ros::ServiceServer service_get_devicemap;
   bool service_set_period_cb(agni_serial_protocol::SetPeriod::Request& req,
                                                agni_serial_protocol::SetPeriod::Response& res);
+  bool service_get_devicemap_cb(agni_serial_protocol::GetDeviceMap::Request& req,
+                                agni_serial_protocol::GetDeviceMap::Response& res);
 #endif
 };
 }

@@ -263,6 +263,7 @@ void SerialProtocolBase::init_ros(ros::NodeHandle& nh)
   dev.init_ros(nh);
   // initialize set_period services
   service_set_period = nh.advertiseService("set_period", &SerialProtocolBase::service_set_period_cb, this) ;
+  service_get_devicemap = nh.advertiseService("get_devicemap", &SerialProtocolBase::service_get_devicemap_cb, this) ;
 }
 
 bool SerialProtocolBase::service_set_period_cb(agni_serial_protocol::SetPeriod::Request& req,
@@ -343,6 +344,19 @@ bool SerialProtocolBase::service_set_period_cb(agni_serial_protocol::SetPeriod::
   else
   {
     res.message = "Set period cannot be empty";
+  }
+  return true;
+}
+
+bool SerialProtocolBase::service_get_devicemap_cb(agni_serial_protocol::GetDeviceMap::Request& req,
+                                                  agni_serial_protocol::GetDeviceMap::Response& res)
+{         
+  const std::vector<std::pair<SensorBase*, bool>> sensors = dev.get_sensors();
+  for (unsigned int i=0; i < sensors.size(); ++i)
+  {
+    res.device_map.sensor_ids.push_back(i+1);
+    res.device_map.sensor_names.push_back(sensors[i].first->get_type().name);
+    res.device_map.driver_ids.push_back(sensors[i].first->get_type().id);
   }
   return true;
 }
