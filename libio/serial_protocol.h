@@ -54,12 +54,16 @@ public:
   {
     return len;
   }
+  const SensorType &get_type()
+  {
+    return sensor_type;
+  }
   virtual void publish() = 0;
   virtual bool parse() = 0;
 
 protected:
   void extract_timestamp(uint8_t* buf);
-  SensorType sensor;
+  SensorType sensor_type;
   uint16_t len;
   void* dataptr;
   uint32_t timestamp;

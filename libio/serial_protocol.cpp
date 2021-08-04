@@ -14,12 +14,12 @@ namespace serial_protocol
 uint8_t SensorBase::base_sensor_count{ 0 };
 
 SensorBase::SensorBase(const uint16_t sen_len, const SensorType sensor_type)
-  : sensor(sensor_type), len(0), dataptr(0), timestamp(0), previous_timestamp(0)
+  : sensor_type(sensor_type), len(0), dataptr(0), timestamp(0), previous_timestamp(0)
 {
   // check data len consistency to registered len
-  if (sensor_type.data_length > 0)
+  if (this->sensor_type.data_length > 0)
   {
-    if (sen_len != sensor_type.data_length)
+    if (sen_len != this->sensor_type.data_length)
       throw std::runtime_error(std::string("sensor: non-matching data length"));
   }
   len = sen_len;

@@ -68,9 +68,9 @@ void Sensor_Default::init_ros(ros::NodeHandle& nh)
 {
   std::stringstream sstr;
   if (sensor_id > 1)
-    sstr << sensor.name << "_" << sensor_id;
+    sstr << sensor_type.name << "_" << sensor_id;
   else
-    sstr << sensor.name;
+    sstr << sensor_type.name;
   pub = nh.advertise<std_msgs::String>(sstr.str(), 10);
   std::cout << "advertized a ros node for sensor " << sstr.str() << std::endl;
 }
@@ -143,8 +143,8 @@ Sensor_IMU_MPU9250_Acc::Sensor_IMU_MPU9250_Acc(const uint16_t sen_len, const Sen
 #ifdef HAVE_ROS
 void Sensor_IMU_MPU9250_Acc::init_ros(ros::NodeHandle& nh)
 {
-  pub = nh.advertise<sensor_msgs::Imu>(sensor.name, 10);
-  std::cout << "advertized a ros node for sensor " << sensor.name << std::endl;
+  pub = nh.advertise<sensor_msgs::Imu>(sensor_type.name, 10);
+  std::cout << "advertized a ros node for sensor " << sensor_type.name << std::endl;
 }
 #endif
 
@@ -221,9 +221,9 @@ Sensor_IMU::Sensor_IMU(const uint16_t sen_len, const SensorType sensor_type) : S
 #ifdef HAVE_ROS
 void Sensor_IMU::init_ros(ros::NodeHandle& nh)
 {
-  msg.header.frame_id = sensor.name;
-  pub = nh.advertise<sensor_msgs::Imu>(sensor.name, 10);
-  std::cout << "advertized a ros node for an IMU sensor " << sensor.name << std::endl;
+  msg.header.frame_id = sensor_type.name;
+  pub = nh.advertise<sensor_msgs::Imu>(sensor_type.name, 10);
+  std::cout << "advertized a ros node for an IMU sensor " << sensor_type.name << std::endl;
 }
 #endif
 
@@ -593,8 +593,8 @@ Sensor_Baro::Sensor_Baro(const uint16_t sen_len, const SensorType sensor_type) :
 #ifdef HAVE_ROS
 void Sensor_Baro::init_ros(ros::NodeHandle& nh)
 {
-  pub = nh.advertise<sensor_msgs::FluidPressure>(sensor.name, 10);
-  std::cout << "advertized a ros node for a Baro sensor " << sensor.name << std::endl;
+  pub = nh.advertise<sensor_msgs::FluidPressure>(sensor_type.name, 10);
+  std::cout << "advertized a ros node for a Baro sensor " << sensor_type.name << std::endl;
 }
 #endif
 
@@ -682,8 +682,8 @@ Sensor_Joy::Sensor_Joy(const uint16_t sen_len, const SensorType sensor_type) : S
 #ifdef HAVE_ROS
 void Sensor_Joy::init_ros(ros::NodeHandle& nh)
 {
-  pub = nh.advertise<sensor_msgs::Joy>(sensor.name, 10);
-  std::cout << "advertized a ros node for a Joy sensor " << sensor.name << std::endl;
+  pub = nh.advertise<sensor_msgs::Joy>(sensor_type.name, 10);
+  std::cout << "advertized a ros node for a Joy sensor " << sensor_type.name << std::endl;
 }
 #endif
 
@@ -829,9 +829,9 @@ Sensor_Tactile::Sensor_Tactile(const uint16_t sen_len, const SensorType sensor_t
 void Sensor_Tactile::init_ros(ros::NodeHandle& nh)
 {
   msg.sensors.resize(1);
-  pub = nh.advertise<tactile_msgs::TactileState>(sensor.name, 10);
+  pub = nh.advertise<tactile_msgs::TactileState>(sensor_type.name, 10);
   msg.sensors[0].name = "tactile";
-  std::cout << "advertized a ros node for a Tactile sensor " << sensor.name << std::endl;
+  std::cout << "advertized a ros node for a Tactile sensor " << sensor_type.name << std::endl;
 }
 #endif
 
@@ -1128,8 +1128,8 @@ Sensor_myrmex_v2::Sensor_myrmex_v2(const uint16_t sen_len, const SensorType sens
 void Sensor_myrmex_v2::init_ros(ros::NodeHandle& nh)
 {
   msg.sensors.resize(1);
-  pub = nh.advertise<tactile_msgs::TactileState>(sensor.name, 10);
-  std::cout << "advertized a ros node for a Myrmex tactile sensor " << sensor.name << std::endl;
+  pub = nh.advertise<tactile_msgs::TactileState>(sensor_type.name, 10);
+  std::cout << "advertized a ros node for a Myrmex tactile sensor " << sensor_type.name << std::endl;
   msg.sensors[board_id].name = "myrmex_sensor" + std::to_string(board_id);
   msg.sensors[board_id].values.resize(NUM_CHANNELS * ADC_PER_BOARD);
 }
@@ -1314,7 +1314,7 @@ void Sensor_tactile_glove_teensy::init_ros(ros::NodeHandle& nh)
   msg.sensors.resize(1);
   pub = nh.advertise<tactile_msgs::TactileState>("TactileGlove", 10);
   msg.sensors[0].name = "tactile";
-  std::cout << "advertized a ros node for a Tactile sensor " << sensor.name << " on topic TactileGlove" << std::endl;
+  std::cout << "advertized a ros node for a Tactile sensor " << sensor_type.name << " on topic TactileGlove" << std::endl;
 }
 #endif
 
