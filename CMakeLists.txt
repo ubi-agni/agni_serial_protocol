@@ -28,6 +28,7 @@ if(catkin_FOUND)
     FILES
     SetPeriod.srv
     GetDeviceMap.srv
+    GetSerialNumber.srv
   )
   
   generate_messages(

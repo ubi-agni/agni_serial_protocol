@@ -10,6 +10,7 @@
 #ifdef HAVE_ROS
 #include <ros/ros.h>
 #include <agni_serial_protocol/SetPeriod.h>
+#include <agni_serial_protocol/GetSerialNumber.h>
 #include <agni_serial_protocol/GetDeviceMap.h>
 #endif
 
@@ -124,6 +125,7 @@ public:
   void init_ros(ros::NodeHandle& nh);
 #endif
   std::string get_serial();
+  void set_serial(std::string serial_number);
 
   std::vector<std::pair<SensorBase*, bool>>& get_sensors()
   {
@@ -183,10 +185,12 @@ public:
 
 protected:
   void config();
+  void req_serialnum();
   void read_config(uint8_t* buf);
+  void read_serialnum(uint8_t* buf);
   void read_error(uint8_t* buf);
   void read_data(uint8_t* buf, const uint8_t did);
-  void read();
+  void read(bool local_throw_at_timeout);
 
   // void unpack_data(uint8_t *buf);
   bool valid_data(const uint8_t* buf, const uint32_t buf_len);
@@ -220,11 +224,15 @@ protected:
 
 #ifdef HAVE_ROS
   ros::ServiceServer service_set_period;
+  ros::ServiceServer service_get_serialnumber;
   ros::ServiceServer service_get_devicemap;
   bool service_set_period_cb(agni_serial_protocol::SetPeriod::Request& req,
-                                               agni_serial_protocol::SetPeriod::Response& res);
+                             agni_serial_protocol::SetPeriod::Response& res);
   bool service_get_devicemap_cb(agni_serial_protocol::GetDeviceMap::Request& req,
                                 agni_serial_protocol::GetDeviceMap::Response& res);
+  bool service_get_serialnum_cb(agni_serial_protocol::GetSerialNumber::Request& req,
+                                   agni_serial_protocol::GetSerialNumber::Response& res);
+
 #endif
 };
 }
