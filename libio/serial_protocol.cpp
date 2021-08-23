@@ -925,7 +925,7 @@ void SerialProtocolBase::read_serialnum(uint8_t* buf)
     throw std::runtime_error(std::string("sp: incomplete serialnum datagram"));
   }
   // validate the full frame
-  if (valid_data(buf, SP_SER_SZ_OFFSET + sernum_len))
+  if (valid_data(buf, SP_SER_NUM_OFFSET + sernum_len))
   {
     // store the serial number
     dev.set_serial(std::string((char*)buf + SP_SER_NUM_OFFSET, sernum_awaitedlen));
@@ -1098,6 +1098,8 @@ void SerialProtocolBase::read(bool local_throw_at_timeout)
             std::cerr << "sp: calib description answer decoding not yet implemented" << std::endl;
           break;
         case SP_DID_ERR:  // process error
+          if (verbose)
+            std::cerr << "sp: error code sent" << std::endl;
           read_error(read_buf);
           break;
         case SP_DID_BCAST:
