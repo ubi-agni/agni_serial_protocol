@@ -153,6 +153,17 @@ void Device::set_serial(std::string serial_number)
   serialnum = serial_number;
 }
 
+std::vector<topoECD> Device::get_topology()
+{
+  return topology_ecds;
+}
+
+void Device::set_topology(const std::vector<topoECD> &topology)
+{
+  topology_ecds = topology;
+}
+
+
 std::pair<SensorBase*, bool>* Device::get_sensor_by_idx(const uint8_t idx)
 {
   int sensor_idx = idx - 1;
@@ -254,6 +265,7 @@ bool SerialProtocolBase::init()
     stop_streaming();
     config();
     req_serialnum();
+    req_topology();
     return true;
   }
   catch (const std::exception& e)
@@ -426,7 +438,7 @@ bool SerialProtocolBase::init_device_from_config(uint8_t* buf, const uint8_t con
 
 void SerialProtocolBase::req_serialnum()
 {
-  uint8_t send_buf[SP_HEADER_LEN + SP_DID_LEN + SP_CMD_LEN + + SP_CHKSUM_LEN];
+  uint8_t send_buf[SP_HEADER_LEN + SP_DID_LEN + SP_CMD_LEN + SP_CHKSUM_LEN];
   // request serial
   uint32_t send_buf_len = gen_serialnum_req(send_buf);
   try
@@ -437,6 +449,23 @@ void SerialProtocolBase::req_serialnum()
   {
     std::cerr << e.what() << std::endl;
     throw std::runtime_error(std::string("sp: failed to req serial"));
+  }
+  read(false); // function might not be implemented in the device, so ignore if no response
+}
+
+void SerialProtocolBase::req_topology()
+{
+  uint8_t send_buf[SP_HEADER_LEN + SP_DID_LEN + SP_CMD_LEN + SP_CHKSUM_LEN];
+  // request topology
+  uint32_t send_buf_len = gen_topology_req(send_buf);
+  try
+  {
+    s->writeFrame(send_buf, (size_t)send_buf_len);
+  }
+  catch (const std::exception& e)
+  {
+    std::cerr << e.what() << std::endl;
+    throw std::runtime_error(std::string("sp: failed to req topology"));
   }
   read(false); // function might not be implemented in the device, so ignore if no response
 }
@@ -938,6 +967,133 @@ void SerialProtocolBase::read_serialnum(uint8_t* buf)
   }
 }
 
+void SerialProtocolBase::read_topology(uint8_t* buf)
+{
+  // read one additional byte to know the type of topology
+  size_t buf_len = 0;
+  buf_len = s->readFrame(buf + SP_TOP_TYPE_OFFSET, SP_TOP_TYPE_LEN);
+  if (buf_len < SP_TOP_TYPE_LEN)
+  {
+    std::cerr << "sp: incorrect topo header size: " << buf_len << " < "
+              << SP_TOP_TYPE_LEN << "\n";
+    throw std::runtime_error(std::string("sp: device did not answer enough data for topology request"));
+  }
+  // save type
+  uint8_t topo_type = (uint8_t)buf[SP_TOP_TYPE_OFFSET];
+  // check type
+  if (topo_type > SP_TOP_TYPE_MAT_START)
+  {
+    //handling matrix topology
+    uint8_t rows= (topo_type & 0xF0)>>4;
+    uint8_t cols= (topo_type & 0x0F);
+    uint8_t num_ecds = rows * cols; // max 15x15 = 225
+    std::vector<topoECD> topology_ecds(num_ecds);
+
+    // read all ecds
+    uint8_t ecd_current_offset = 0;
+    for (unsigned int i = 0; i < num_ecds; ++i)
+    {
+      // read size of the ecd message
+      size_t ecd_len_byteread = 0;
+      try
+      {
+        ecd_len_byteread = s->readFrame(buf + SP_TOP_ECD_OFFSET + ecd_current_offset, SP_TOP_ECD_SZ_LEN);
+      }
+      catch (const std::exception& e)
+      {
+        std::cerr << e.what() << std::endl;
+        throw std::runtime_error(std::string("sp: device failed to answer ecd size"));
+      }
+
+      // check size
+      if (ecd_len_byteread != (size_t)(SP_TOP_ECD_SZ_LEN))
+      {
+        std::cerr << "sp: topology ECD size missing " << std::endl;
+        throw std::runtime_error(std::string("sp: incomplete topology ECD datagram"));
+      }
+      else
+      {
+        uint8_t ecd_len = (uint8_t)buf[SP_TOP_ECD_OFFSET];
+        // read data part of the ecd message
+        size_t ecd_data_byteread = 0;
+        try
+        {
+          ecd_data_byteread = s->readFrame(buf + SP_TOP_ECD_OFFSET + ecd_current_offset + SP_TOP_ECD_SZ_LEN, ecd_len);
+        }
+        catch (const std::exception& e)
+        {
+          std::cerr << e.what() << std::endl;
+          throw std::runtime_error(std::string("sp: device failed to answer ecd data"));
+        }
+        // check data size
+        if (ecd_data_byteread != (size_t)(ecd_len))
+        {
+          std::cerr << "sp: topology read " << ecd_data_byteread << " ECD data instead of "
+              << ecd_len << " awaited" << std::endl;
+          throw std::runtime_error(std::string("sp: incomplete topology ECD datagram"));
+        }
+        else
+        {
+          // fill an ecd message
+          topoECD ecd;
+          ecd.clear();
+          // add logical ids to ecd
+          for (unsigned int j = 0; j < ecd_len; ++j)
+          {
+            ecd.push_back((uint8_t)buf[SP_TOP_ECD_OFFSET+ecd_current_offset+SP_TOP_ECD_SZ_LEN+j]);
+          }
+          if (ecd_len > 0)
+            topology_ecds[i] = ecd;
+          ecd_current_offset += ecd_len + SP_TOP_ECD_SZ_LEN;
+        }
+      }
+    } // for ecds
+
+    // read Checksum
+    size_t checksum_len = 0;
+    try
+    {
+      checksum_len = s->readFrame(buf + SP_TOP_ECD_OFFSET + ecd_current_offset, SP_CHKSUM_LEN);
+    }
+    catch (const std::exception& e)
+    {
+      std::cerr << e.what() << std::endl;
+      throw std::runtime_error(std::string("sp: checksum missing for topo"));
+    }
+
+    // check checksum is there
+    if (checksum_len != (size_t)(SP_CHKSUM_LEN))
+    {
+      std::cerr << "sp: topology has no checksum " << std::endl;
+      throw std::runtime_error(std::string("sp: topology misses checksum"));
+    }
+    
+    // validate the full frame
+    if (valid_data(buf, SP_TOP_ECD_OFFSET + ecd_current_offset + SP_CHKSUM_LEN))
+    {
+      // store the topology
+      dev.set_topology(topology_ecds);
+    }
+    else
+    {
+      // error
+      throw std::runtime_error(std::string("sp: checksum or header invalid for topology"));
+    }
+  }
+  else
+  {
+    switch(topo_type)
+    {
+      default:
+        std::cerr << "sp: topo different than matrix type are not yet supported \n";
+        throw std::runtime_error(std::string("sp: only topology in matrix type are supported for now"));
+    }
+  }
+ 
+
+  
+}
+
 void SerialProtocolBase::read_data(uint8_t* buf, const uint8_t did)
 {
   // check sensor existence to compute awaited len
@@ -1083,7 +1239,8 @@ void SerialProtocolBase::read(bool local_throw_at_timeout)
           break;
         case SP_DID_TOPOL:
           if (verbose)
-            std::cerr << "sp: topology answer decoding not yet implemented" << std::endl;
+            std::cerr << "sp: processing topolgy answer" << std::endl;
+          read_topology(read_buf);
           break;
         case SP_DID_SERIAL:
           if (verbose)
@@ -1374,14 +1531,14 @@ uint32_t SerialProtocolBase::gen_sensor_trigger_req(uint8_t* buf, uint8_t sen_id
   return gen_command(buf, sen_id, SP_CMD_START_STREAM_TRIG_SEL, 0);
 }
 
-uint32_t SerialProtocolBase::gen_topo_req(uint8_t* buf)
-{
-  return gen_command(buf, SP_DID_MASTER, SP_CMD_TOPORQ, 0);
-}
-
 uint32_t SerialProtocolBase::gen_serialnum_req(uint8_t* buf)
 {
   return gen_command(buf, SP_DID_MASTER, SP_CMD_SERIAL, 0);
+}
+
+uint32_t SerialProtocolBase::gen_topology_req(uint8_t* buf)
+{
+  return gen_command(buf, SP_DID_MASTER, SP_CMD_TOPORQ, 0);
 }
 
 uint32_t SerialProtocolBase::gen_period_master_req(uint8_t* buf, const std::map<uint8_t, uint16_t>& period_map)

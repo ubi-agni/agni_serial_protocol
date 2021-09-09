@@ -40,6 +40,9 @@ struct SensorType
   uint16_t data_length;
 };
 
+// TopologyElementContentDescriptor
+typedef std::vector<uint8_t> topoECD;
+
 class SensorBase
 {
 public:
@@ -126,6 +129,8 @@ public:
 #endif
   std::string get_serial();
   void set_serial(std::string serial_number);
+  std::vector<topoECD> get_topology();
+  void set_topology(const std::vector<topoECD> &topology);
 
   std::vector<std::pair<SensorBase*, bool>>& get_sensors()
   {
@@ -141,6 +146,7 @@ public:
 protected:
   std::vector<std::pair<SensorBase*, bool>> sensors;
   // std::vector<bool> active_sensors;
+  std::vector<topoECD> topology_ecds;
   uint32_t cached_max_stream_size;
   bool active_sensor_modified;
   std::string serialnum;
@@ -187,8 +193,10 @@ public:
 protected:
   void config();
   void req_serialnum();
+  void req_topology();
   void read_config(uint8_t* buf);
   void read_serialnum(uint8_t* buf);
+  void read_topology(uint8_t* buf);
   void read_error(uint8_t* buf);
   void read_data(uint8_t* buf, const uint8_t did);
   void read(bool local_throw_at_timeout);
@@ -208,7 +216,7 @@ protected:
   uint32_t gen_master_config_req(uint8_t* buf);
   uint32_t gen_sensor_trigger_req(uint8_t* buf, uint8_t sen_id);
   uint32_t gen_master_trigger_req(uint8_t* buf);
-  uint32_t gen_topo_req(uint8_t* buf);
+  uint32_t gen_topology_req(uint8_t* buf);
   uint32_t gen_serialnum_req(uint8_t* buf);
   uint32_t gen_period_master_req(uint8_t* buf, const std::map<uint8_t, uint16_t>& period_map);
   uint32_t gen_period_sensor_req(uint8_t* buf, const uint8_t sen_id, const uint16_t period);
@@ -217,6 +225,7 @@ protected:
   bool streaming;
   std::map<uint8_t, DeviceType> device_types;
   std::map<uint16_t, SensorType> sensor_types;
+
   SerialCom* s;
   std::string d_filename;
   std::string s_filename;
