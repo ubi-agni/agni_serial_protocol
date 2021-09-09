@@ -181,6 +181,7 @@ public:
 
   DeviceType get_device();
   bool verbose;
+  std::string service_prefix;
   bool throw_at_timeout;
 
 protected:

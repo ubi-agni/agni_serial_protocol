@@ -239,7 +239,7 @@ void Device::publish_all()
 
 SerialProtocolBase::SerialProtocolBase(SerialCom* serial_com, const std::string device_filename,
                                        const std::string sensor_filename)
-  : verbose(false), throw_at_timeout(true), streaming(false), s(serial_com), d_filename(device_filename), s_filename(sensor_filename)
+  : verbose(false), service_prefix(""), throw_at_timeout(true), streaming(false), s(serial_com), d_filename(device_filename), s_filename(sensor_filename)
 {
 }
 
@@ -268,9 +268,10 @@ void SerialProtocolBase::init_ros(ros::NodeHandle& nh)
 {
   dev.init_ros(nh);
   // initialize set_period services
-  service_set_period = nh.advertiseService("set_period", &SerialProtocolBase::service_set_period_cb, this) ;
-  service_get_serialnumber = nh.advertiseService("get_serialnumber", &SerialProtocolBase::service_get_serialnum_cb, this) ;
-  service_get_devicemap = nh.advertiseService("get_devicemap", &SerialProtocolBase::service_get_devicemap_cb, this) ;
+  service_prefix = ros::this_node::getName() + "/";
+  service_set_period = nh.advertiseService(service_prefix + "set_period", &SerialProtocolBase::service_set_period_cb, this) ;
+  service_get_serialnumber = nh.advertiseService(service_prefix + "get_serialnumber", &SerialProtocolBase::service_get_serialnum_cb, this) ;
+  service_get_devicemap = nh.advertiseService(service_prefix + "get_devicemap", &SerialProtocolBase::service_get_devicemap_cb, this) ;
 }
 
 bool SerialProtocolBase::service_set_period_cb(agni_serial_protocol::SetPeriod::Request& req,
