@@ -129,8 +129,9 @@ public:
 #endif
   std::string get_serial();
   void set_serial(std::string serial_number);
-  std::vector<topoECD> get_topology();
-  void set_topology(const std::vector<topoECD> &topology);
+  uint8_t get_topology_type();
+  std::vector<topoECD> get_topology_matrix(uint8_t &rows, uint8_t &cols);
+  void set_topology_matrix(const std::vector<topoECD> &topology, uint8_t rows, uint8_t cols);
 
   std::vector<std::pair<SensorBase*, bool>>& get_sensors()
   {
@@ -146,6 +147,9 @@ public:
 protected:
   std::vector<std::pair<SensorBase*, bool>> sensors;
   // std::vector<bool> active_sensors;
+  uint8_t topology_type;
+  // used for matrix topology
+  uint8_t topology_rows, topology_cols;
   std::vector<topoECD> topology_ecds;
   uint32_t cached_max_stream_size;
   bool active_sensor_modified;

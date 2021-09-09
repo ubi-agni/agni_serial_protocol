@@ -117,6 +117,7 @@ SensorBase* SensorFactory::CreateSensor(const uint16_t sen_len, const SensorType
 Device::Device()
 {
   device.id = 0;
+  topology_type = 0;
 }
 
 void Device::init(const DeviceType dev_type)
@@ -153,13 +154,23 @@ void Device::set_serial(std::string serial_number)
   serialnum = serial_number;
 }
 
-std::vector<topoECD> Device::get_topology()
+uint8_t Device::get_topology_type()
 {
+  return topology_type;
+}
+
+std::vector<topoECD> Device::get_topology_matrix(uint8_t &rows, uint8_t &cols)
+{
+  rows = topology_rows;
+  cols = topology_cols;
   return topology_ecds;
 }
 
-void Device::set_topology(const std::vector<topoECD> &topology)
+void Device::set_topology_matrix(const std::vector<topoECD> &topology, uint8_t rows, uint8_t cols)
 {
+  topology_type = SP_TOP_TYPE_MATRIX;
+  topology_rows = rows;
+  topology_cols = cols;
   topology_ecds = topology;
 }
 
@@ -984,8 +995,10 @@ void SerialProtocolBase::read_topology(uint8_t* buf)
   if (topo_type > SP_TOP_TYPE_MAT_START)
   {
     //handling matrix topology
-    uint8_t rows= (topo_type & 0xF0)>>4;
-    uint8_t cols= (topo_type & 0x0F);
+    uint8_t rows = (topo_type & 0xF0)>>4;
+    uint8_t cols = (topo_type & 0x0F);
+    if (verbose)
+      std::cout << "sp: topology found matrix type with size (" << (int)rows << ", " << (int)cols << ")"<< std::endl;
     uint8_t num_ecds = rows * cols; // max 15x15 = 225
     std::vector<topoECD> topology_ecds(num_ecds);
 
@@ -1013,7 +1026,7 @@ void SerialProtocolBase::read_topology(uint8_t* buf)
       }
       else
       {
-        uint8_t ecd_len = (uint8_t)buf[SP_TOP_ECD_OFFSET];
+        uint8_t ecd_len = (uint8_t)buf[SP_TOP_ECD_OFFSET + ecd_current_offset];
         // read data part of the ecd message
         size_t ecd_data_byteread = 0;
         try
@@ -1038,6 +1051,8 @@ void SerialProtocolBase::read_topology(uint8_t* buf)
           topoECD ecd;
           ecd.clear();
           // add logical ids to ecd
+          if (verbose)
+            std::cout << "sp: topology adding " << (int) ecd_len << " sensor ids at idx " << i << std::endl;
           for (unsigned int j = 0; j < ecd_len; ++j)
           {
             ecd.push_back((uint8_t)buf[SP_TOP_ECD_OFFSET+ecd_current_offset+SP_TOP_ECD_SZ_LEN+j]);
@@ -1072,7 +1087,7 @@ void SerialProtocolBase::read_topology(uint8_t* buf)
     if (valid_data(buf, SP_TOP_ECD_OFFSET + ecd_current_offset + SP_CHKSUM_LEN))
     {
       // store the topology
-      dev.set_topology(topology_ecds);
+      dev.set_topology_matrix(topology_ecds, rows, cols);
     }
     else
     {
