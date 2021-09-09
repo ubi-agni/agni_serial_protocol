@@ -60,7 +60,7 @@ public:
   {
     return len;
   }
-  const SensorType &get_type()
+  const SensorType& get_type()
   {
     return sensor_type;
   }
@@ -131,8 +131,8 @@ public:
   std::string get_serial();
   void set_serial(std::string serial_number);
   uint8_t get_topology_type();
-  std::vector<topoECD> get_topology_matrix(uint8_t &rows, uint8_t &cols);
-  void set_topology_matrix(const std::vector<topoECD> &topology, uint8_t rows, uint8_t cols);
+  std::vector<topoECD> get_topology_matrix(uint8_t& rows, uint8_t& cols);
+  void set_topology_matrix(const std::vector<topoECD>& topology, uint8_t rows, uint8_t cols);
 
   std::vector<std::pair<SensorBase*, bool>>& get_sensors()
   {
@@ -215,8 +215,8 @@ protected:
   uint8_t compute_checksum(const uint8_t* buf, const uint32_t len);
 
   void send(const uint8_t* buf, const uint32_t len);
-  uint32_t gen_command(uint8_t* buf, const uint8_t destination, const uint8_t command,
-                       const uint32_t size, const uint16_t stride=1, const uint8_t* data = NULL);
+  uint32_t gen_command(uint8_t* buf, const uint8_t destination, const uint8_t command, const uint32_t size,
+                       const uint16_t stride = 1, const uint8_t* data = NULL);
   uint32_t gen_master_ping_req(uint8_t* buf);
   uint32_t gen_master_config_req(uint8_t* buf);
   uint32_t gen_sensor_trigger_req(uint8_t* buf, uint8_t sen_id);

@@ -161,21 +161,20 @@ uint8_t Device::get_topology_type()
   return topology_type;
 }
 
-std::vector<topoECD> Device::get_topology_matrix(uint8_t &rows, uint8_t &cols)
+std::vector<topoECD> Device::get_topology_matrix(uint8_t& rows, uint8_t& cols)
 {
   rows = topology_rows;
   cols = topology_cols;
   return topology_ecds;
 }
 
-void Device::set_topology_matrix(const std::vector<topoECD> &topology, uint8_t rows, uint8_t cols)
+void Device::set_topology_matrix(const std::vector<topoECD>& topology, uint8_t rows, uint8_t cols)
 {
   topology_type = SP_TOP_TYPE_MATRIX;
   topology_rows = rows;
   topology_cols = cols;
   topology_ecds = topology;
 }
-
 
 std::pair<SensorBase*, bool>* Device::get_sensor_by_idx(const uint8_t idx)
 {
@@ -263,7 +262,13 @@ void Device::publish_all()
 
 SerialProtocolBase::SerialProtocolBase(SerialCom* serial_com, const std::string device_filename,
                                        const std::string sensor_filename)
-  : verbose(false), service_prefix(""), throw_at_timeout(true), streaming(false), s(serial_com), d_filename(device_filename), s_filename(sensor_filename)
+  : verbose(false)
+  , service_prefix("")
+  , throw_at_timeout(true)
+  , streaming(false)
+  , s(serial_com)
+  , d_filename(device_filename)
+  , s_filename(sensor_filename)
 {
 }
 
@@ -294,10 +299,14 @@ void SerialProtocolBase::init_ros(ros::NodeHandle& nh)
   dev.init_ros(nh);
   // initialize set_period services
   service_prefix = ros::this_node::getName() + "/";
-  service_set_period = nh.advertiseService(service_prefix + "set_period", &SerialProtocolBase::service_set_period_cb, this);
-  service_get_serialnumber = nh.advertiseService(service_prefix + "get_serialnumber", &SerialProtocolBase::service_get_serialnum_cb, this);
-  service_get_topology = nh.advertiseService(service_prefix + "get_topology", &SerialProtocolBase::service_get_topology_cb, this);
-  service_get_devicemap = nh.advertiseService(service_prefix + "get_devicemap", &SerialProtocolBase::service_get_devicemap_cb, this);
+  service_set_period =
+      nh.advertiseService(service_prefix + "set_period", &SerialProtocolBase::service_set_period_cb, this);
+  service_get_serialnumber =
+      nh.advertiseService(service_prefix + "get_serialnumber", &SerialProtocolBase::service_get_serialnum_cb, this);
+  service_get_topology =
+      nh.advertiseService(service_prefix + "get_topology", &SerialProtocolBase::service_get_topology_cb, this);
+  service_get_devicemap =
+      nh.advertiseService(service_prefix + "get_devicemap", &SerialProtocolBase::service_get_devicemap_cb, this);
 }
 
 bool SerialProtocolBase::service_set_period_cb(agni_serial_protocol::SetPeriod::Request& req,
@@ -322,7 +331,7 @@ bool SerialProtocolBase::service_set_period_cb(agni_serial_protocol::SetPeriod::
           catch (const std::exception& e)
           {
             std::stringstream sstr;
-            sstr  << "Failed to set period: " << e.what();
+            sstr << "Failed to set period: " << e.what();
             res.message = sstr.str();
           }
         }
@@ -351,7 +360,7 @@ bool SerialProtocolBase::service_set_period_cb(agni_serial_protocol::SetPeriod::
         try
         {
           set_periods(period_map);
-          
+
           if (invalid_period)
           {
             std::stringstream sstr;
@@ -365,7 +374,7 @@ bool SerialProtocolBase::service_set_period_cb(agni_serial_protocol::SetPeriod::
         catch (const std::exception& e)
         {
           std::stringstream sstr;
-          sstr  << "Failed to set period: " << e.what();
+          sstr << "Failed to set period: " << e.what();
           res.message = sstr.str();
         }
       }
@@ -384,14 +393,13 @@ bool SerialProtocolBase::service_set_period_cb(agni_serial_protocol::SetPeriod::
 
 bool SerialProtocolBase::service_get_serialnum_cb(agni_serial_protocol::GetSerialNumber::Request& req,
                                                   agni_serial_protocol::GetSerialNumber::Response& res)
-{         
+{
   res.serial_number = dev.get_serial();
   return true;
 }
 
-
 bool SerialProtocolBase::service_get_topology_cb(agni_serial_protocol::GetTopology::Request& req,
-                                                  agni_serial_protocol::GetTopology::Response& res)
+                                                 agni_serial_protocol::GetTopology::Response& res)
 {
   res.topology.type = dev.get_topology_type();
   if (res.topology.type == agni_serial_protocol::Topology::TYPE_MATRIX)
@@ -409,11 +417,11 @@ bool SerialProtocolBase::service_get_topology_cb(agni_serial_protocol::GetTopolo
 
 bool SerialProtocolBase::service_get_devicemap_cb(agni_serial_protocol::GetDeviceMap::Request& req,
                                                   agni_serial_protocol::GetDeviceMap::Response& res)
-{         
+{
   const std::vector<std::pair<SensorBase*, bool>> sensors = dev.get_sensors();
-  for (unsigned int i=0; i < sensors.size(); ++i)
+  for (unsigned int i = 0; i < sensors.size(); ++i)
   {
-    res.device_map.sensor_ids.push_back(i+1);
+    res.device_map.sensor_ids.push_back(i + 1);
     res.device_map.sensor_names.push_back(sensors[i].first->get_type().name);
     res.device_map.driver_ids.push_back(sensors[i].first->get_type().id);
   }
@@ -481,7 +489,7 @@ void SerialProtocolBase::req_serialnum()
     std::cerr << e.what() << std::endl;
     throw std::runtime_error(std::string("sp: failed to req serial"));
   }
-  read(false); // function might not be implemented in the device, so ignore if no response
+  read(false);  // function might not be implemented in the device, so ignore if no response
 }
 
 void SerialProtocolBase::req_topology()
@@ -498,7 +506,7 @@ void SerialProtocolBase::req_topology()
     std::cerr << e.what() << std::endl;
     throw std::runtime_error(std::string("sp: failed to req topology"));
   }
-  read(false); // function might not be implemented in the device, so ignore if no response
+  read(false);  // function might not be implemented in the device, so ignore if no response
 }
 
 bool SerialProtocolBase::set_device(const uint8_t dev_id)
@@ -514,7 +522,8 @@ bool SerialProtocolBase::set_device(const uint8_t dev_id)
 
 void SerialProtocolBase::set_period(const uint8_t sen_id, const uint16_t period)
 {
-  uint8_t send_buf[SP_HEADER_LEN + SP_DID_LEN + SP_CMD_LEN + SP_CMD_DATA_SZ_LEN + SP_PERIOD_SENSOR_DATA_LEN + SP_CHKSUM_LEN];
+  uint8_t send_buf[SP_HEADER_LEN + SP_DID_LEN + SP_CMD_LEN + SP_CMD_DATA_SZ_LEN + SP_PERIOD_SENSOR_DATA_LEN +
+                   SP_CHKSUM_LEN];
   uint32_t send_buf_len = 0;
   if (sen_id == 0)
   {
@@ -554,7 +563,8 @@ void SerialProtocolBase::set_periods(const std::map<uint8_t, uint16_t> period_ma
 {
   if (period_map.size())
   {
-    uint8_t send_buf[SP_HEADER_LEN + SP_DID_LEN + SP_CMD_LEN + SP_CMD_DATA_SZ_LEN + SP_PERIOD_DATA_LEN * period_map.size() + SP_CHKSUM_LEN];
+    uint8_t send_buf[SP_HEADER_LEN + SP_DID_LEN + SP_CMD_LEN + SP_CMD_DATA_SZ_LEN +
+                     SP_PERIOD_DATA_LEN * period_map.size() + SP_CHKSUM_LEN];
     uint32_t send_buf_len = 0;
     send_buf_len = gen_period_master_req(send_buf, period_map);
     if (send_buf_len)
@@ -960,13 +970,12 @@ void SerialProtocolBase::read_serialnum(uint8_t* buf)
   buf_len = s->readFrame(buf + SP_SER_SZ_OFFSET, SP_SER_SZ_LEN);
   if (buf_len < SP_SER_SZ_LEN)
   {
-    std::cerr << "sp: incorrect serialnum header size: " << buf_len << " < "
-              << SP_SER_SZ_LEN << "\n";
+    std::cerr << "sp: incorrect serialnum header size: " << buf_len << " < " << SP_SER_SZ_LEN << "\n";
     throw std::runtime_error(std::string("sp: device did not answer enough data for serialnum"));
   }
   // read serial data
   uint8_t sernum_awaitedlen = (uint8_t)buf[SP_SER_SZ_OFFSET];
- 
+
   // read next part of the config message
   size_t sernum_len = 0;
   try
@@ -981,8 +990,8 @@ void SerialProtocolBase::read_serialnum(uint8_t* buf)
   // check data
   if (sernum_len != (size_t)(sernum_awaitedlen + SP_CHKSUM_LEN))
   {
-    std::cerr << "sp: read " << sernum_len << " bytes of sernum_len instead of "
-              << sernum_awaitedlen + SP_CHKSUM_LEN << std::endl;
+    std::cerr << "sp: read " << sernum_len << " bytes of sernum_len instead of " << sernum_awaitedlen + SP_CHKSUM_LEN
+              << std::endl;
     throw std::runtime_error(std::string("sp: incomplete serialnum datagram"));
   }
   // validate the full frame
@@ -1005,8 +1014,7 @@ void SerialProtocolBase::read_topology(uint8_t* buf)
   buf_len = s->readFrame(buf + SP_TOP_TYPE_OFFSET, SP_TOP_TYPE_LEN);
   if (buf_len < SP_TOP_TYPE_LEN)
   {
-    std::cerr << "sp: incorrect topo header size: " << buf_len << " < "
-              << SP_TOP_TYPE_LEN << "\n";
+    std::cerr << "sp: incorrect topo header size: " << buf_len << " < " << SP_TOP_TYPE_LEN << "\n";
     throw std::runtime_error(std::string("sp: device did not answer enough data for topology request"));
   }
   // save type
@@ -1014,12 +1022,12 @@ void SerialProtocolBase::read_topology(uint8_t* buf)
   // check type
   if (topo_type > SP_TOP_TYPE_MAT_START)
   {
-    //handling matrix topology
-    uint8_t rows = (topo_type & 0xF0)>>4;
+    // handling matrix topology
+    uint8_t rows = (topo_type & 0xF0) >> 4;
     uint8_t cols = (topo_type & 0x0F);
     if (verbose)
-      std::cout << "sp: topology found matrix type with size (" << (int)rows << ", " << (int)cols << ")"<< std::endl;
-    uint8_t num_ecds = rows * cols; // max 15x15 = 225
+      std::cout << "sp: topology found matrix type with size (" << (int)rows << ", " << (int)cols << ")" << std::endl;
+    uint8_t num_ecds = rows * cols;  // max 15x15 = 225
     std::vector<topoECD> topology_ecds(num_ecds);
 
     // read all ecds
@@ -1061,8 +1069,8 @@ void SerialProtocolBase::read_topology(uint8_t* buf)
         // check data size
         if (ecd_data_byteread != (size_t)(ecd_len))
         {
-          std::cerr << "sp: topology read " << ecd_data_byteread << " ECD data instead of "
-              << ecd_len << " awaited" << std::endl;
+          std::cerr << "sp: topology read " << ecd_data_byteread << " ECD data instead of " << ecd_len << " awaited"
+                    << std::endl;
           throw std::runtime_error(std::string("sp: incomplete topology ECD datagram"));
         }
         else
@@ -1072,17 +1080,17 @@ void SerialProtocolBase::read_topology(uint8_t* buf)
           ecd.clear();
           // add logical ids to ecd
           if (verbose)
-            std::cout << "sp: topology adding " << (int) ecd_len << " sensor ids at idx " << i << std::endl;
+            std::cout << "sp: topology adding " << (int)ecd_len << " sensor ids at idx " << i << std::endl;
           for (unsigned int j = 0; j < ecd_len; ++j)
           {
-            ecd.push_back((uint8_t)buf[SP_TOP_ECD_OFFSET+ecd_current_offset+SP_TOP_ECD_SZ_LEN+j]);
+            ecd.push_back((uint8_t)buf[SP_TOP_ECD_OFFSET + ecd_current_offset + SP_TOP_ECD_SZ_LEN + j]);
           }
           if (ecd_len > 0)
             topology_ecds[i] = ecd;
           ecd_current_offset += ecd_len + SP_TOP_ECD_SZ_LEN;
         }
       }
-    } // for ecds
+    }  // for ecds
 
     // read Checksum
     size_t checksum_len = 0;
@@ -1102,7 +1110,7 @@ void SerialProtocolBase::read_topology(uint8_t* buf)
       std::cerr << "sp: topology has no checksum " << std::endl;
       throw std::runtime_error(std::string("sp: topology misses checksum"));
     }
-    
+
     // validate the full frame
     if (valid_data(buf, SP_TOP_ECD_OFFSET + ecd_current_offset + SP_CHKSUM_LEN))
     {
@@ -1117,16 +1125,13 @@ void SerialProtocolBase::read_topology(uint8_t* buf)
   }
   else
   {
-    switch(topo_type)
+    switch (topo_type)
     {
       default:
         std::cerr << "sp: topo different than matrix type are not yet supported \n";
         throw std::runtime_error(std::string("sp: only topology in matrix type are supported for now"));
     }
   }
- 
-
-  
 }
 
 void SerialProtocolBase::read_data(uint8_t* buf, const uint8_t did)
