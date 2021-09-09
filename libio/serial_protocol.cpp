@@ -1,4 +1,6 @@
 #include "serial_protocol.h"
+#include <agni_serial_protocol/Topology.h>
+#include <agni_serial_protocol/TopologyECD.h>
 #include "registered_sensors_impl.h"
 #include "yaml-cpp/yaml.h"
 #include <exception>
@@ -292,9 +294,10 @@ void SerialProtocolBase::init_ros(ros::NodeHandle& nh)
   dev.init_ros(nh);
   // initialize set_period services
   service_prefix = ros::this_node::getName() + "/";
-  service_set_period = nh.advertiseService(service_prefix + "set_period", &SerialProtocolBase::service_set_period_cb, this) ;
-  service_get_serialnumber = nh.advertiseService(service_prefix + "get_serialnumber", &SerialProtocolBase::service_get_serialnum_cb, this) ;
-  service_get_devicemap = nh.advertiseService(service_prefix + "get_devicemap", &SerialProtocolBase::service_get_devicemap_cb, this) ;
+  service_set_period = nh.advertiseService(service_prefix + "set_period", &SerialProtocolBase::service_set_period_cb, this);
+  service_get_serialnumber = nh.advertiseService(service_prefix + "get_serialnumber", &SerialProtocolBase::service_get_serialnum_cb, this);
+  service_get_topology = nh.advertiseService(service_prefix + "get_topology", &SerialProtocolBase::service_get_topology_cb, this);
+  service_get_devicemap = nh.advertiseService(service_prefix + "get_devicemap", &SerialProtocolBase::service_get_devicemap_cb, this);
 }
 
 bool SerialProtocolBase::service_set_period_cb(agni_serial_protocol::SetPeriod::Request& req,
@@ -386,6 +389,23 @@ bool SerialProtocolBase::service_get_serialnum_cb(agni_serial_protocol::GetSeria
   return true;
 }
 
+
+bool SerialProtocolBase::service_get_topology_cb(agni_serial_protocol::GetTopology::Request& req,
+                                                  agni_serial_protocol::GetTopology::Response& res)
+{
+  res.topology.type = dev.get_topology_type();
+  if (res.topology.type == agni_serial_protocol::Topology::TYPE_MATRIX)
+  {
+    std::vector<topoECD> ecds = dev.get_topology_matrix(res.topology.rows, res.topology.cols);
+    for (auto ecd : ecds)
+    {
+      agni_serial_protocol::TopologyECD ecd_msg;
+      ecd_msg.sensor_ids = ecd;
+      res.topology.ecds.push_back(ecd_msg);
+    }
+  }
+  return true;
+}
 
 bool SerialProtocolBase::service_get_devicemap_cb(agni_serial_protocol::GetDeviceMap::Request& req,
                                                   agni_serial_protocol::GetDeviceMap::Response& res)

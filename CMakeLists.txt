@@ -21,6 +21,8 @@ if(catkin_FOUND)
   add_message_files(DIRECTORY msg FILES
     PeriodMap.msg
     DeviceMap.msg
+    Topology.msg
+    TopologyECD.msg
   )
 
   # Generate services in the 'srv' folder
@@ -29,6 +31,7 @@ if(catkin_FOUND)
     SetPeriod.srv
     GetDeviceMap.srv
     GetSerialNumber.srv
+    GetTopology.srv
   )
   
   generate_messages(
