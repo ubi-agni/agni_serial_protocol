@@ -1020,7 +1020,7 @@ void SerialProtocolBase::read_topology(uint8_t* buf)
   // save type
   uint8_t topo_type = (uint8_t)buf[SP_TOP_TYPE_OFFSET];
   // check type
-  if (topo_type > SP_TOP_TYPE_MAT_START)
+  if (topo_type >= SP_TOP_TYPE_MAT_START)
   {
     // handling matrix topology
     uint8_t rows = (topo_type & 0xF0) >> 4;
