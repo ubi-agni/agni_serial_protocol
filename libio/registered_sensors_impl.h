@@ -1130,8 +1130,9 @@ void Sensor_myrmex_v2::init_ros(ros::NodeHandle& nh)
   msg.sensors.resize(1);
   pub = nh.advertise<tactile_msgs::TactileState>(sensor_type.name, 10);
   std::cout << "advertized a ros node for a Myrmex tactile sensor " << sensor_type.name << std::endl;
-  msg.sensors[board_id].name = "myrmex_sensor" + std::to_string(board_id);
-  msg.sensors[board_id].values.resize(NUM_CHANNELS * ADC_PER_BOARD);
+  msg.sensors[0].name = "myrmex_sensor" + std::to_string(board_id);
+  std::cout << "  with channel " << msg.sensors[0].name << std::endl;
+  msg.sensors[0].values.resize(NUM_CHANNELS * ADC_PER_BOARD);
 }
 #endif
 
@@ -1143,7 +1144,7 @@ void Sensor_myrmex_v2::publish()
 #ifdef HAVE_ROS
     for (size_t i = 0; i < tactile_array.size(); i++)
     {
-      msg.sensors[board_id].values[i] = tactile_array[i];
+      msg.sensors[0].values[i] = tactile_array[i];
     }
     msg.header.stamp = ros::Time::now();
     pub.publish(msg);
