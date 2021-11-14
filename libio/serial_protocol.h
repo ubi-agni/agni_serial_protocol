@@ -66,6 +66,8 @@ public:
   }
   virtual void publish() = 0;
   virtual bool parse() = 0;
+  void process_args();
+  std::string args;
 
 protected:
   void extract_timestamp(uint8_t* buf);
@@ -76,6 +78,8 @@ protected:
   uint32_t previous_timestamp;
   bool new_data;
   uint8_t base_sensor_id;
+  std::map<std::string, std::string> args_map_str;
+  std::map<std::string, float> args_map_float;
 
 private:
   static uint8_t base_sensor_count;
@@ -140,7 +144,7 @@ public:
   }
   std::pair<SensorBase*, bool>* get_sensor_by_idx(const uint8_t idx);
   bool exists_sensor(const uint8_t idx);
-  void add_sensor(const uint16_t data_len, const SensorType sensor_type);
+  void add_sensor(const uint16_t data_len, const SensorType sensor_type, const std::string args="");
   void publish_all();
 
   DeviceType device;
@@ -161,7 +165,7 @@ class SerialProtocolBase
 {
 public:
   explicit SerialProtocolBase(SerialCom* serial_com, const std::string device_filename = "",
-                              const std::string sensor_filename = "");
+                              const std::string sensor_filename = "", const std::string sensor_args="");
   ~SerialProtocolBase();
   bool init();
 #ifdef HAVE_ROS
@@ -188,6 +192,7 @@ public:
   void read_sensor_types(const uint8_t v);
   bool exists_device(const uint8_t dev_id);
   bool exists_sensor_driver(const uint16_t sen_driver_id);
+  bool get_sensor_driver_id(uint16_t &sen_driver_id, const std::string sen_driver_name);
   bool exists_sensor(const uint8_t sen_id);
 
   DeviceType get_device();
@@ -226,14 +231,18 @@ protected:
   uint32_t gen_period_master_req(uint8_t* buf, const std::map<uint8_t, uint16_t>& period_map);
   uint32_t gen_period_sensor_req(uint8_t* buf, const uint8_t sen_id, const uint16_t period);
 
+  void parse_sensor_args();
+
   uint8_t version;
   bool streaming;
   std::map<uint8_t, DeviceType> device_types;
   std::map<uint16_t, SensorType> sensor_types;
+  std::map<uint16_t, std::string> args_dict;
 
   SerialCom* s;
   std::string d_filename;
   std::string s_filename;
+  std::string s_args;
   Device dev;
   uint8_t read_buf[SP_MAX_BUF_SIZE];
 

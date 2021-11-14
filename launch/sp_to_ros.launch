@@ -3,15 +3,17 @@
   <arg name="registration_folder" default="$(find agni_serial_protocol)/registration"/>
   <arg name="device_file" default="$(arg registration_folder)/device_types.yaml"/>
   <arg name="sensor_file" default="$(arg registration_folder)/registred_devices.yaml"/>
+  <arg name="extra_args" default="none"/>
+  <arg name="sensor_args_helper" default="$(eval '' if (extra_args == 'none') else '--sensor_args '+extra_args)"/>
   <arg name="debug" default="false"/>
   <group if="$(arg debug)">
     <node pkg="agni_serial_protocol" name="sp_to_ros" type="agni_serial_protocol_node" respawn="false" output="screen"
-     args="-s $(arg device) -v --sensor_file $(arg sensor_file) --device_file $(arg device_file)">
+     args="-s $(arg device) -v --sensor_file $(arg sensor_file) $(arg sensor_args_helper) --device_file $(arg device_file)">
     </node>
   </group>
   <group unless="$(arg debug)">
     <node pkg="agni_serial_protocol" name="sp_to_ros" type="agni_serial_protocol_node" respawn="false" output="screen"
-     args="-s $(arg device) --ignore_timeout --sensor_file $(arg sensor_file) --device_file $(arg device_file)">
+     args="-s $(arg device) --ignore_timeout --sensor_file $(arg sensor_file) $(arg sensor_args_helper) --device_file $(arg device_file)">
     </node>
   </group>
 </launch>

@@ -16,10 +16,11 @@ void usage(char* argv[])
 }
 
 bool handleCommandline(std::string& device, bool& verbose, bool& ignore_timeout, std::string& device_filename,
-                       std::string& sensor_filename, int argc, char* argv[])
+                       std::string& sensor_filename, std::string& sensor_args, int argc, char* argv[])
 {
   // default input device
   device = "/dev/ttyACM0";
+  sensor_args = "";
   verbose = false;
   ignore_timeout = false;
 
@@ -30,8 +31,10 @@ bool handleCommandline(std::string& device, bool& verbose, bool& ignore_timeout,
       "sensor type definition filename")("device_file",
                                          po::value<std::string>(&device_filename)->implicit_value(device_filename),
                                          "device type definition filename");
-  options.add_options()("verbose,v", "activate verbosity")("ignore_timeout", "do not quit a data timeout")(
-      "help,h", "Display this help message.");
+  options.add_options()("verbose,v", "activate verbosity")
+                       ("ignore_timeout", "do not quit a data timeout")
+                       ("sensor_args", po::value<std::string>(&sensor_args)->implicit_value(sensor_args), "extra args for the sensor parser ex: arg1=val1;arg2=val2")
+                       ("help,h", "Display this help message.");
   options.add(inputs);
 
   po::variables_map map;
@@ -59,6 +62,7 @@ int main(int argc, char** argv)
   std::string sSerial;
   std::string sDeviceFilename;
   std::string sSensorFilename;
+  std::string sSensorArgs;
   bool bVerbose;
   bool bIgnoreTimeout;
 
@@ -66,7 +70,7 @@ int main(int argc, char** argv)
 
   try
   {
-    if (handleCommandline(sSerial, bVerbose, bIgnoreTimeout, sDeviceFilename, sSensorFilename, argc, argv))
+    if (handleCommandline(sSerial, bVerbose, bIgnoreTimeout, sDeviceFilename, sSensorFilename, sSensorArgs, argc, argv))
     {
       usage(argv);
       return EXIT_SUCCESS;
@@ -91,9 +95,13 @@ int main(int argc, char** argv)
     s.setTimeOut(1000);
     s.setVerbose(bVerbose);
     std::cout << "connected\n";
-    std::cout << "creating serial protocol with device_filename " << sDeviceFilename << " and sensor_filename "
-              << sSensorFilename << "\n";
-    serial_protocol::SerialProtocolBase p(&s, sDeviceFilename, sSensorFilename);
+    std::cout << "creating serial protocol with device_filename " << sDeviceFilename
+              << " and sensor_filename " << sSensorFilename;
+    if (sSensorArgs.length())
+      std::cout << " passing following args: " << sSensorArgs << "\n";
+    else
+      std::cout << std::endl;
+    serial_protocol::SerialProtocolBase p(&s, sDeviceFilename, sSensorFilename, sSensorArgs);
     p.verbose = bVerbose;
     p.throw_at_timeout = !bIgnoreTimeout;
     std::cout << "initializing serial protocol\n";

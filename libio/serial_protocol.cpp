@@ -10,6 +10,8 @@
 #include <sstream>
 #include <iostream>
 #include <utility>
+#include <map>
+
 
 namespace serial_protocol
 {
@@ -48,6 +50,78 @@ bool SensorBase::init()
   return false;
 }
 
+void SensorBase::process_args()
+{
+  if (args.length())
+  {
+    args_map_str.clear();
+    args_map_float.clear();
+    
+    char *token;
+    // way around the const char issue of s_args.c_str()
+    std::vector<char> args_vect(args.begin(), args.end() + 1);
+    // Do we have multiple args ?
+    bool multi_args = false;
+    if (args.find(";") != std::string::npos)
+    {
+      // split at ";"
+      token = std::strtok(args_vect.data(), ";");
+      multi_args = true;
+    }
+    else
+    {
+      token = args_vect.data();
+    }
+    while (token != NULL)
+    {
+      // find the key
+      std::string s(token);
+      size_t pos = s.find("=");
+      // if no key, warn and pass
+      if(pos == std::string::npos)
+      {
+        std::cerr << "sp: sensor parse arg failed, no value found, ignoring entry. syntax is :var_name=var_value;" << std::endl;
+      }
+      else
+      {
+        std::string key = s.substr(0, pos);
+        std::string value_str = s.substr(pos + 1, std::string::npos);
+        // try convert value to a float
+        try
+        {
+          float f = std::stof(value_str);
+          if (args_map_float.find(key) == args_map_float.end())
+          {
+          
+            args_map_float[key] = f;
+          }
+          else
+          {
+            std::cerr << "sp: sensor parse arg duplicate entry found: " << key << std::endl;
+          }
+        }
+        catch (const std::exception& e)
+        {
+          //std::cerr << e.what() << std::endl;
+          if (args_map_str.find(key) == args_map_str.end())
+          {
+          
+            args_map_str[key]=  value_str;
+          }
+          else
+          {
+            std::cerr << "sp: sensor parse arg duplicate entry found: " << key << std::endl;
+          }          
+        }
+      }
+      if (multi_args)
+        token = std::strtok(NULL, ";");
+      else
+        break;
+    }
+  }
+}
+
 bool SensorBase::unpack(uint8_t* buf)
 {
   // store the raw value, no processing at all
@@ -72,6 +146,7 @@ void SensorBase::extract_timestamp(uint8_t* buf)
 {
   std::memcpy((uint8_t*)&timestamp, buf, SP_TIMESTAMP_LEN);
 }
+
 
 /* **********************
  *
@@ -193,7 +268,7 @@ bool Device::exists_sensor(const uint8_t idx)
     return idx <= sensors.size();
 }
 
-void Device::add_sensor(const uint16_t data_len, const SensorType sensor_type)
+void Device::add_sensor(const uint16_t data_len, const SensorType sensor_type, const std::string args)
 {
   try
   {
@@ -201,6 +276,8 @@ void Device::add_sensor(const uint16_t data_len, const SensorType sensor_type)
 
     if (sensor)
     {
+      sensor->args = args;
+      sensor->process_args();
       if (sensor->init())
       {
         sensors.push_back(std::make_pair(sensor, true));
@@ -261,7 +338,7 @@ void Device::publish_all()
 /* *********************** */
 
 SerialProtocolBase::SerialProtocolBase(SerialCom* serial_com, const std::string device_filename,
-                                       const std::string sensor_filename)
+                                       const std::string sensor_filename, const std::string sensor_args)
   : verbose(false)
   , service_prefix("")
   , throw_at_timeout(true)
@@ -269,6 +346,7 @@ SerialProtocolBase::SerialProtocolBase(SerialCom* serial_com, const std::string 
   , s(serial_com)
   , d_filename(device_filename)
   , s_filename(sensor_filename)
+  , s_args(sensor_args)
 {
 }
 
@@ -290,6 +368,81 @@ bool SerialProtocolBase::init()
   {
     std::cerr << "sp: init failed:" << e.what() << std::endl;
     return false;
+  }
+}
+
+// https://stackoverflow.com/a/38813146
+void SerialProtocolBase::parse_sensor_args()
+{
+  // parser for "TactileModule:name=toto;TactileModule:channel=foo;IMU:name=tutu"
+  if (s_args.length())
+  {
+    std::map<std::string, std::string> sensor_args_map;
+    char *token;
+    // way around the const char issue of s_args.c_str()
+    std::vector<char> s_args_vect(s_args.begin(), s_args.end()+1);
+    // Do we have multiple args ?
+    bool multi_args = false;
+    if (s_args.find(";")!=std::string::npos)
+    {
+      // split at ";"
+      token = std::strtok(s_args_vect.data(), ";");
+      multi_args = true;
+    }
+    else
+    {
+      token = s_args_vect.data();
+    }
+    while (token != NULL)
+    {
+      if (verbose)
+        std::cout << "sp: parsing extra_args" << std::endl;
+      // find the key
+      std::string s(token);
+      size_t pos = s.find(":");
+      // if no key, warn and pass
+      if(pos == std::string::npos)
+      {
+        std::cerr << "sp: parse sensor arg failed, no sensor type found, ignoring entry. syntax is :sensor_type:var_name=var_value" << std::endl;
+      }
+      else
+      {
+        std::string key = s.substr(0, pos);
+        if (sensor_args_map.find(key) == sensor_args_map.end())
+        {
+          sensor_args_map[key] = s.substr(pos + 1, std::string::npos);
+        }
+        else
+        {
+          sensor_args_map[key] = sensor_args_map[key] + ";" + s.substr(pos + 1, std::string::npos);s.substr(pos + 1, std::string::npos);
+        }
+      }
+      if (multi_args)
+        token = std::strtok(NULL, ";");
+      else
+        break;
+    }
+
+    // convert the map to one using hex sensor types
+    args_dict.clear();
+    for(auto const& p: sensor_args_map)
+    {
+      uint16_t sen_driver_id;
+      //std::cout << "searching for " << p.first << std::endl;
+      // find the sensor_driver_id by name
+      if (get_sensor_driver_id(sen_driver_id, p.first))
+      {
+        args_dict[sen_driver_id] = p.second;
+        //std::cout << "    found  " << sen_driver_id << std::endl;
+      }
+    }
+  }
+  // for debug only
+  if (verbose)
+  {
+    std::cout << " sensor_args dictionary" << std::endl;
+    for(auto const& p: args_dict)
+      std::cout << ' {' << p.first << " => " << p.second << '}' << '\n';
   }
 }
 
@@ -461,7 +614,14 @@ bool SerialProtocolBase::init_device_from_config(uint8_t* buf, const uint8_t con
     {
       try
       {
-        dev.add_sensor(sen_len, sensor_types[sen_type]);
+        // find args for this sensor_type
+        std::string args = "";
+        if (args_dict.find(sen_type)!=args_dict.end())
+        {
+          args = args_dict[sen_type];
+        }
+        // add the sensor to the device (implicitly instantiates a dedicted parser)
+        dev.add_sensor(sen_len, sensor_types[sen_type], args);
       }
       catch (const std::exception& e)
       {
@@ -793,14 +953,30 @@ void SerialProtocolBase::read_sensor_types(const uint8_t v)
   sensor_types[st.id] = st;
 }
 
+// check if the dev_id exists in the database of device_types
 bool SerialProtocolBase::exists_device(const uint8_t dev_id)
 {
   return device_types.find(dev_id) != device_types.end();
 }
 
+// check if the sen_driver_id exists in the database of registered_devices
 bool SerialProtocolBase::exists_sensor_driver(const uint16_t sen_driver_id)
 {
   return sensor_types.find(sen_driver_id) != sensor_types.end();
+}
+
+// get the sen_driver_id by name in the database of registered_devices
+bool SerialProtocolBase::get_sensor_driver_id(uint16_t &sen_driver_id, const std::string sen_driver_name)
+{
+  for(auto const& s: sensor_types)
+  {
+    if (s.second.name == sen_driver_name)
+    {
+      sen_driver_id = s.first;
+      return true;
+    }
+  }
+  return false;
 }
 
 bool SerialProtocolBase::exists_sensor(const uint8_t sen_id)
@@ -951,6 +1127,8 @@ void SerialProtocolBase::read_config(uint8_t* buf)
   // validate the full frame
   if (valid_data(buf, SP_SDSC_DATA_OFFSET + config_len))
   {
+    // parse sensor_args here because the sensor_type is now initialized
+    parse_sensor_args();
     if (!init_device_from_config(buf + SP_SDSC_DATA_OFFSET, config_num))
     {
       throw std::runtime_error(std::string("sp: error initializing the device"));
@@ -1614,6 +1792,7 @@ uint32_t SerialProtocolBase::gen_period_sensor_req(uint8_t* buf, const uint8_t s
   return gen_command(buf, sen_id, SP_CMD_PERIOD, SP_PERIOD_SENSOR_DATA_LEN, 1, data);
 }
 
+
 /*
   uint8_t stopbuf[5] = {0xF0,0xC4, 0x00, 0x00, 0x34};
   //uint8_t stopbuf[5] = {0xF0,0xC4, 0x00, 0xC0, 0xF4};
@@ -1631,4 +1810,6 @@ uint32_t SerialProtocolBase::gen_period_sensor_req(uint8_t* buf, const uint8_t s
   printf("sc: reflushed %lu chars\n", read_len);
 
 */
+
+
 }

@@ -1128,9 +1128,21 @@ Sensor_myrmex_v2::Sensor_myrmex_v2(const uint16_t sen_len, const SensorType sens
 void Sensor_myrmex_v2::init_ros(ros::NodeHandle& nh)
 {
   msg.sensors.resize(1);
-  pub = nh.advertise<tactile_msgs::TactileState>(sensor_type.name, 10);
+  // override topic_name if given
+  if (args_map_str.find("topic_name")!=args_map_str.end())
+  {
+    pub = nh.advertise<tactile_msgs::TactileState>(args_map_str["topic_name"], 10);
+  }
+  else
+    pub = nh.advertise<tactile_msgs::TactileState>(sensor_type.name, 10);
   std::cout << "advertized a ros node for a Myrmex tactile sensor " << sensor_type.name << std::endl;
-  msg.sensors[0].name = "myrmex_sensor" + std::to_string(board_id);
+  // override sensor name/channel
+  if (args_map_str.find("name")!=args_map_str.end())
+  {
+    msg.sensors[0].name = args_map_str["name"];
+  }
+  else
+    msg.sensors[0].name = "myrmex_sensor" + std::to_string(board_id);
   std::cout << "  with channel " << msg.sensors[0].name << std::endl;
   msg.sensors[0].values.resize(NUM_CHANNELS * ADC_PER_BOARD);
 }
