@@ -630,7 +630,11 @@ bool SerialProtocolBase::init_device_from_config(uint8_t* buf, const uint8_t con
       }
     }
     else
+    {
+      if (verbose)
+        printf("sp: no sensor driver found for sensor %d\n", i);
       return false;
+    }
   }
   return true;
 }
