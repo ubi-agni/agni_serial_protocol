@@ -442,7 +442,7 @@ void SerialProtocolBase::parse_sensor_args()
   {
     std::cout << " sensor_args dictionary" << std::endl;
     for(auto const& p: args_dict)
-      std::cout << ' {' << p.first << " => " << p.second << '}' << '\n';
+      std::cout << " {" << p.first << " => " << p.second << "}" << '\n';
   }
 }
 
