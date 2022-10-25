@@ -154,6 +154,8 @@ size_t SerialCom::readFrame(uint8_t *buf, size_t len)
 		res = read(fd, buf + index, len - index);
 		if (verbose)
 			printf("sc: read result %d \n", res);
+		if (res == 0)
+			throw std::runtime_error(std::string("sc: serial device disconnected"));
 		if (res < 0)
 			throw std::runtime_error(std::string("sc: serial read error"));
 		index += res;
