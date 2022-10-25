@@ -609,7 +609,7 @@ bool SerialProtocolBase::init_device_from_config(uint8_t* buf, const uint8_t con
     uint16_t sen_type = config_buf[0] + config_buf[1] * 256;
     uint16_t sen_len = config_buf[2] + config_buf[3] * 256;
     if (verbose)
-      printf("sp: for sensor %d, found sen_type %u and sen_len %u\n", i, sen_type, sen_len);
+      printf("sp: for sensor %d, found sen_type %04X and sen_len %u\n", i, sen_type, sen_len);
     if (exists_sensor_driver(sen_type))
     {
       try
@@ -631,8 +631,7 @@ bool SerialProtocolBase::init_device_from_config(uint8_t* buf, const uint8_t con
     }
     else
     {
-      if (verbose)
-        printf("sp: no sensor driver found for sensor %d\n", i);
+      printf("sp: no sensor driver found for logical sensor %d with type %04X, check registred_devices.yaml\n", i, sen_type);
       return false;
     }
   }
@@ -1105,7 +1104,9 @@ void SerialProtocolBase::read_config(uint8_t* buf)
   // create a device
   if (!set_device(buf[SP_DEVID_OFFSET]))
   {
-    throw std::runtime_error(std::string("sp: device exists already"));
+    std::cerr << "sp:device with id " << (int)buf[SP_DEVID_OFFSET] 
+              << " is not a known device type (check device_types.yaml)" << std::endl;
+    throw std::runtime_error(std::string("sp: device type not found"));
   }
 
   // get how much more config comes
