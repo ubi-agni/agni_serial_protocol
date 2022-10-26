@@ -1422,26 +1422,18 @@ void SerialProtocolBase::read_error(uint8_t* buf)
           std::cerr << " device encountered an undocumented error" << std::endl;
         }
     }
+    return;
   }
-  else if (error_len == SP_ERR_TYP_LEN)
+
+  // HANDLE bug in an old firmware version (prior to 23/08/2021) that don't send a checksum for SP_ERR_UNKNCMD
+  if (error_len == SP_ERR_TYP_LEN && buf[SP_ERR_TYP_OFFSET] == SP_ERR_UNKNCMD)
   {
-    // HANDLE bug in an old firmware version (prior to 23/08/2021) that don't send checksum for SP_ERR_UNKNCMD
-    uint8_t error_code = buf[SP_ERR_TYP_OFFSET]; // decode the error_code
-    if (error_code == SP_ERR_UNKNCMD)            // the bug is only on unknown error commands
-    {
-      // ignore checksum, and fake that the read was successful
-      std::cerr << " device says unknown command, but didn't send a checksum. Consider updating the firmware to fix this bug." << std::endl;
-      return;
-    }
-    else
-    {
-      throw std::runtime_error(std::string("sp:err, invalid error type or missing checksum"));
-    }
+    // ignore checksum, and fake that the read was successful
+    std::cerr << " device says unknown command, but didn't send a checksum. Consider updating the firmware to fix this bug." << std::endl;
+    return;
   }
-  else
-  {
-    throw std::runtime_error(std::string("sp:err, invalid error message, with neither additional type nor checksum"));
-  }
+
+  throw std::runtime_error(std::string("sp:err, invalid error message"));
 }
 
 void SerialProtocolBase::read(bool local_throw_at_timeout)
