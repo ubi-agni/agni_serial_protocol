@@ -151,9 +151,9 @@ size_t SerialCom::readFrame(uint8_t *buf, size_t len)
 		if (verbose)
 			printf("sc: read result %d \n", res);
 		if (res == 0)  // zero bytes read (after successful pselect) indicates disconnected device
-			throw std::runtime_error(std::string("sc: serial device disconnected"));
+			throw std::runtime_error("sc: serial device disconnected");
 		if (res < 0)
-			throw std::runtime_error(std::string("sc: serial read error"));
+			throw std::runtime_error("sc: serial read error");
 		index += res;
 	}
 	if (verbose)
@@ -177,7 +177,6 @@ size_t SerialCom::writeFrame(const uint8_t *buf, size_t len)
 	size_t res = write(fd, buf, len);
 	if (res < 0)
 		throw std::runtime_error(strerror(errno));
-		//throw std::runtime_error(std::string("sc: serial write error"));
 	if (verbose)
 		printf("sc: written %lu bytes\n", res);
 
