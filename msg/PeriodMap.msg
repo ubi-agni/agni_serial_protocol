@@ -1,5 +1,5 @@
 # Map of period for logical sensors
-# sensor_ids and periods must contain the same number of elements 
+# sensor_ids and periods must contain the same number of elements
 # and at minimum of one element.
 
 # logical sensor ids to set (starts at 1)

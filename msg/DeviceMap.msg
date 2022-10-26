@@ -1,5 +1,5 @@
 # Map of Names for logical sensors
-# sensor_ids and sensor_names must contain the same number of elements 
+# sensor_ids and sensor_names must contain the same number of elements
 # and at minimum of one element.
 
 # logical sensor ids (starts at 1)

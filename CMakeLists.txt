@@ -33,7 +33,7 @@ if(catkin_FOUND)
     GetSerialNumber.srv
     GetTopology.srv
   )
-  
+
   generate_messages(
     DEPENDENCIES std_msgs
   )
@@ -66,8 +66,8 @@ if(catkin_FOUND)
     ${catkin_LIBRARIES}
     ${Boost_PROGRAM_OPTIONS_LIBRARY_RELEASE}
   )
-  
-  
+
+
 endif(catkin_FOUND)
 
 add_executable(test_libio test/test_libio.cpp)

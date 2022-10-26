@@ -12,7 +12,6 @@
 #include <utility>
 #include <map>
 
-
 namespace serial_protocol
 {
 uint8_t SensorBase::base_sensor_count{ 0 };
@@ -56,7 +55,7 @@ void SensorBase::process_args()
   {
     args_map_str.clear();
     args_map_float.clear();
-    
+
     char *token;
     // way around the const char issue of s_args.c_str()
     std::vector<char> args_vect(args.begin(), args.end() + 1);
@@ -92,7 +91,7 @@ void SensorBase::process_args()
           float f = std::stof(value_str);
           if (args_map_float.find(key) == args_map_float.end())
           {
-          
+
             args_map_float[key] = f;
           }
           else
@@ -105,13 +104,13 @@ void SensorBase::process_args()
           //std::cerr << e.what() << std::endl;
           if (args_map_str.find(key) == args_map_str.end())
           {
-          
+
             args_map_str[key]=  value_str;
           }
           else
           {
             std::cerr << "sp: sensor parse arg duplicate entry found: " << key << std::endl;
-          }          
+          }
         }
       }
       if (multi_args)
@@ -1104,7 +1103,7 @@ void SerialProtocolBase::read_config(uint8_t* buf)
   // create a device
   if (!set_device(buf[SP_DEVID_OFFSET]))
   {
-    std::cerr << "sp:device with id " << (int)buf[SP_DEVID_OFFSET] 
+    std::cerr << "sp:device with id " << (int)buf[SP_DEVID_OFFSET]
               << " is not a known device type (check device_types.yaml)" << std::endl;
     throw std::runtime_error(std::string("sp: device type not found"));
   }

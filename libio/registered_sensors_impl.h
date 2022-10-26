@@ -1115,7 +1115,7 @@ private:
 
 unsigned int Sensor_myrmex_v2::board_count{ 0 };
 
-// IMPL 
+// IMPL
 Sensor_myrmex_v2::Sensor_myrmex_v2(const uint16_t sen_len, const SensorType sensor_type)
   : Sensor_Tactile(sen_len, sensor_type)
 {

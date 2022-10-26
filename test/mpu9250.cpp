@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 
   // register Ctrl-C handler
   signal(SIGINT, mySigIntHandler);
-  
+
   serial_protocol::SerialCom s;
 
   try
@@ -78,18 +78,18 @@ int main(int argc, char **argv)
     //s.connect("/tmp/ttyV0");
     s.setTimeOut(1000);
     //s.setVerbose(true);
-    std::cout << "connected\n";  
-    std::cout << "creating serial protocol with  device_filename " << sDeviceFilename << "\n";  
+    std::cout << "connected\n";
+    std::cout << "creating serial protocol with  device_filename " << sDeviceFilename << "\n";
     serial_protocol::SerialProtocolBase p(&s, sDeviceFilename, sSensorFilename);
     //p.verbose = true;
     std::cout << "initializing serial protocol\n";
     if(p.init())
     {
       std::cout << "initialized\n";
-      std::cout << "start streaming\n"; 
+      std::cout << "start streaming\n";
       p.start_streaming();
-     
-      std::cout << "streaming\n"; 
+
+      std::cout << "streaming\n";
       while (bRun) // loop until Ctrl-C
       {
         try {

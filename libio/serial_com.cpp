@@ -1,6 +1,6 @@
 /* ============================================================
  * Modified by Guillaume Walck 2019
- * 
+ *
  * Copyright (C) 2015 by Robert Haschke <rhaschke at techfak dot uni-bielefeld dot de>
  *
  * This file may be licensed under the terms of the
@@ -33,18 +33,14 @@
 #include <stdexcept>
 #include <iostream>
 
-
-
 using namespace std;
 
 namespace serial_protocol {
-
 
 const char *SerialCom::timeout_error::what() const throw()
 {
 	return "serial communication timed out";
 }
-
 
 SerialCom::SerialCom() :
  connected(false), verbose(false)
@@ -147,7 +143,7 @@ size_t SerialCom::readFrame(uint8_t *buf, size_t len)
 			printf("sc: pselect result %d \n", res);
 		if (res == -1) throw std::runtime_error(strerror(errno));
 		if (res == 0) return index; // timeout
-		
+
 		// read a maximum of len bytes into buf (actual read count is in res)
 		if (verbose)
 			printf("sc: reading %lu bytes\n", len - index);
