@@ -1444,8 +1444,7 @@ void SerialProtocolBase::read(bool local_throw_at_timeout)
       if (!valid_header(read_buf))
       {
         if (verbose)
-          std::cout << "sp: found header 0x" << std::hex << (int)read_buf[0] << " 0x" << std::hex << (int)read_buf[1]
-                    << std::endl;
+          std::cout << "sp: found header 0x" << std::hex << read_buf[0] << " 0x" << std::hex << read_buf[1] << std::endl;
         throw std::runtime_error("sp:invalid header");
       }
       // decode datagram ID
