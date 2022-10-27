@@ -174,7 +174,7 @@ size_t SerialCom::writeFrame(const uint8_t *buf, size_t len)
 			printf("%x ", buf[i]);
 		printf("\n");
 	}
-	size_t res = write(fd, buf, len);
+	ssize_t res = write(fd, buf, len);
 	if (res < 0)
 		throw std::runtime_error(strerror(errno));
 	if (verbose)
