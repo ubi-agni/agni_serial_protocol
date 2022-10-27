@@ -26,15 +26,15 @@ bool handleCommandline(std::string& device, bool& verbose, bool& ignore_timeout,
 
   // define processed options
   po::options_description inputs("input options");
-  inputs.add_options()("serial,s", po::value<std::string>(&device)->implicit_value(device), "serial input device")(
-      "sensor_file", po::value<std::string>(&sensor_filename)->implicit_value(sensor_filename),
-      "sensor type definition filename")("device_file",
-                                         po::value<std::string>(&device_filename)->implicit_value(device_filename),
-                                         "device type definition filename");
-  options.add_options()("verbose,v", "activate verbosity")
-                       ("ignore_timeout", "do not quit a data timeout")
-                       ("sensor_args", po::value<std::string>(&sensor_args)->implicit_value(sensor_args), "extra args for the sensor parser ex: arg1=val1;arg2=val2")
-                       ("help,h", "Display this help message.");
+  inputs.add_options()
+    ("serial,s", po::value<std::string>(&device)->implicit_value(device), "serial input device")
+    ("sensor_file", po::value<std::string>(&sensor_filename)->implicit_value(sensor_filename),"sensor type definition filename")
+    ("device_file", po::value<std::string>(&device_filename)->implicit_value(device_filename), "device type definition filename");
+  options.add_options()
+    ("verbose,v", "activate verbosity")
+    ("ignore_timeout", "do not quit a data timeout")
+    ("sensor_args", po::value<std::string>(&sensor_args)->implicit_value(sensor_args), "extra args for the sensor parser ex: arg1=val1;arg2=val2")
+    ("help,h", "Display this help message.");
   options.add(inputs);
 
   po::variables_map map;
