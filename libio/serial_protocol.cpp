@@ -590,7 +590,7 @@ void SerialProtocolBase::config()
   try
   {
     // printf("sp: fake write\n");
-    s->writeFrame(send_buf, (size_t)send_buf_len);
+    s->write(send_buf, (size_t)send_buf_len);
   }
   catch (const std::exception& e)
   {
@@ -644,7 +644,7 @@ void SerialProtocolBase::req_serialnum()
   uint32_t send_buf_len = gen_serialnum_req(send_buf);
   try
   {
-    s->writeFrame(send_buf, (size_t)send_buf_len);
+    s->write(send_buf, (size_t)send_buf_len);
   }
   catch (const std::exception& e)
   {
@@ -661,7 +661,7 @@ void SerialProtocolBase::req_topology()
   uint32_t send_buf_len = gen_topology_req(send_buf);
   try
   {
-    s->writeFrame(send_buf, (size_t)send_buf_len);
+    s->write(send_buf, (size_t)send_buf_len);
   }
   catch (const std::exception& e)
   {
@@ -1054,7 +1054,7 @@ void SerialProtocolBase::read_config(uint8_t* buf)
   {
     try
     {
-      buf_len = s->readFrame(buf, CONF_MIN_LEN);
+      buf_len = s->read(buf, CONF_MIN_LEN);
     }
     catch (const std::exception &e) {
       std::cerr << " " <<  e.what() << std::endl;
@@ -1065,7 +1065,7 @@ void SerialProtocolBase::read_config(uint8_t* buf)
   }*/
   // read additional config header
   size_t buf_len = 0;
-  buf_len = s->readFrame(buf + SP_VERSION_OFFSET, SP_VERSION_LEN + SP_DEVID_LEN + SP_SDSC_SZ_LEN);
+  buf_len = s->read(buf + SP_VERSION_OFFSET, SP_VERSION_LEN + SP_DEVID_LEN + SP_SDSC_SZ_LEN);
   if (buf_len < SP_VERSION_LEN + SP_DEVID_LEN + SP_SDSC_SZ_LEN)
   {
     std::cerr << "sp: incorrect config header size: " << buf_len << " < "
@@ -1106,7 +1106,7 @@ void SerialProtocolBase::read_config(uint8_t* buf)
   size_t config_len = 0;
   try
   {
-    config_len = s->readFrame(buf + SP_SDSC_DATA_OFFSET, config_num * SP_SDSC_SIZE + SP_CHKSUM_LEN);
+    config_len = s->read(buf + SP_SDSC_DATA_OFFSET, config_num * SP_SDSC_SIZE + SP_CHKSUM_LEN);
   }
   catch (const std::exception& e)
   {
@@ -1141,7 +1141,7 @@ void SerialProtocolBase::read_serialnum(uint8_t* buf)
 {
   // read one additional byte to know the length
   size_t buf_len = 0;
-  buf_len = s->readFrame(buf + SP_SER_SZ_OFFSET, SP_SER_SZ_LEN);
+  buf_len = s->read(buf + SP_SER_SZ_OFFSET, SP_SER_SZ_LEN);
   if (buf_len < SP_SER_SZ_LEN)
   {
     std::cerr << "sp: incorrect serialnum header size: " << buf_len << " < " << SP_SER_SZ_LEN << "\n";
@@ -1154,7 +1154,7 @@ void SerialProtocolBase::read_serialnum(uint8_t* buf)
   size_t sernum_len = 0;
   try
   {
-    sernum_len = s->readFrame(buf + SP_SER_NUM_OFFSET, sernum_awaitedlen + SP_CHKSUM_LEN);
+    sernum_len = s->read(buf + SP_SER_NUM_OFFSET, sernum_awaitedlen + SP_CHKSUM_LEN);
   }
   catch (const std::exception& e)
   {
@@ -1185,7 +1185,7 @@ void SerialProtocolBase::read_topology(uint8_t* buf)
 {
   // read one additional byte to know the type of topology
   size_t buf_len = 0;
-  buf_len = s->readFrame(buf + SP_TOP_TYPE_OFFSET, SP_TOP_TYPE_LEN);
+  buf_len = s->read(buf + SP_TOP_TYPE_OFFSET, SP_TOP_TYPE_LEN);
   if (buf_len < SP_TOP_TYPE_LEN)
   {
     std::cerr << "sp: incorrect topo header size: " << buf_len << " < " << SP_TOP_TYPE_LEN << "\n";
@@ -1212,7 +1212,7 @@ void SerialProtocolBase::read_topology(uint8_t* buf)
       size_t ecd_len_byteread = 0;
       try
       {
-        ecd_len_byteread = s->readFrame(buf + SP_TOP_ECD_OFFSET + ecd_current_offset, SP_TOP_ECD_SZ_LEN);
+        ecd_len_byteread = s->read(buf + SP_TOP_ECD_OFFSET + ecd_current_offset, SP_TOP_ECD_SZ_LEN);
       }
       catch (const std::exception& e)
       {
@@ -1233,7 +1233,7 @@ void SerialProtocolBase::read_topology(uint8_t* buf)
         size_t ecd_data_byteread = 0;
         try
         {
-          ecd_data_byteread = s->readFrame(buf + SP_TOP_ECD_OFFSET + ecd_current_offset + SP_TOP_ECD_SZ_LEN, ecd_len);
+          ecd_data_byteread = s->read(buf + SP_TOP_ECD_OFFSET + ecd_current_offset + SP_TOP_ECD_SZ_LEN, ecd_len);
         }
         catch (const std::exception& e)
         {
@@ -1270,7 +1270,7 @@ void SerialProtocolBase::read_topology(uint8_t* buf)
     size_t checksum_len = 0;
     try
     {
-      checksum_len = s->readFrame(buf + SP_TOP_ECD_OFFSET + ecd_current_offset, SP_CHKSUM_LEN);
+      checksum_len = s->read(buf + SP_TOP_ECD_OFFSET + ecd_current_offset, SP_CHKSUM_LEN);
     }
     catch (const std::exception& e)
     {
@@ -1322,7 +1322,7 @@ void SerialProtocolBase::read_data(uint8_t* buf, const uint8_t did)
       if (expected_len + SP_DATA_OFFSET < SP_MAX_BUF_SIZE)
       {
         // read additional data (timestamp + sensor len + checksum)
-        data_len = s->readFrame(buf + SP_DATA_OFFSET, expected_len);
+        data_len = s->read(buf + SP_DATA_OFFSET, expected_len);
       }
       else
         throw std::runtime_error("sp:expects too much data for buffer max size");
@@ -1365,7 +1365,7 @@ void SerialProtocolBase::read_data(uint8_t* buf, const uint8_t did)
 void SerialProtocolBase::read_error(uint8_t* buf)
 {
   size_t error_len = 0;
-  error_len = s->readFrame(buf + SP_ERR_TYP_OFFSET, SP_ERR_TYP_LEN + SP_CHKSUM_LEN);
+  error_len = s->read(buf + SP_ERR_TYP_OFFSET, SP_ERR_TYP_LEN + SP_CHKSUM_LEN);
   if (error_len == SP_ERR_TYP_LEN + SP_CHKSUM_LEN)
   {
     uint8_t error_code = buf[SP_ERR_TYP_OFFSET];
@@ -1400,8 +1400,8 @@ void SerialProtocolBase::read_error(uint8_t* buf)
           // strbuf[0] = (char)buf[ERROR_OFFSET+2];  // first string was already read
           // read str_len because one character was already read but checksum is still to be read
           uint8_t str_len = error_code;  // include the checksum
-          s->readFrame(buf + SP_ERR_TYP_OFFSET + SP_ERR_TYP_LEN + SP_CHKSUM_LEN,
-                       str_len);  // read the reminder of the string
+          s->read(buf + SP_ERR_TYP_OFFSET + SP_ERR_TYP_LEN + SP_CHKSUM_LEN,
+                  str_len); // read the reminder of the string
           if (!valid_checksum(buf, SP_ERR_TYP_OFFSET + SP_ERR_TYP_LEN + str_len + SP_CHKSUM_LEN))
             throw std::runtime_error("sp:err, string invalid checksum");
           memcpy(strbuf, buf + SP_ERR_TYP_OFFSET + SP_ERR_TYP_LEN, str_len);
@@ -1435,7 +1435,7 @@ void SerialProtocolBase::read(bool local_throw_at_timeout)
   try
   {
     // always read 3 bytes : HEADER + datagram id
-    read_buf_len = s->readFrame(read_buf, SP_HEADER_LEN + SP_DID_LEN);
+    read_buf_len = s->read(read_buf, SP_HEADER_LEN + SP_DID_LEN);
     if (read_buf_len == SP_HEADER_LEN + SP_DID_LEN)
     {
       if (verbose)
@@ -1620,7 +1620,7 @@ void SerialProtocolBase::process(uint8_t *buf, size_t buf_len)
     // read the correct amount of bytes
     try
     {
-      buf_len = s->readFrame(buf, HEADER_LEN + 1 + sen_len);
+      buf_len = s->read(buf, HEADER_LEN + 1 + sen_len);
     }
     catch (const std::exception &e) {
       std::cerr << " " <<  e.what() << std::endl;
@@ -1696,7 +1696,7 @@ void SerialProtocolBase::send(const uint8_t* buf, const uint32_t len)
 {
   try
   {
-    s->writeFrame(buf, (size_t)len);
+    s->write(buf, (size_t)len);
   }
   catch (const std::exception& e)
   {
@@ -1794,17 +1794,16 @@ uint32_t SerialProtocolBase::gen_period_sensor_req(uint8_t* buf, const uint8_t s
   return gen_command(buf, sen_id, SP_CMD_PERIOD, SP_PERIOD_SENSOR_DATA_LEN, 1, data);
 }
 
-
 /*
   uint8_t stopbuf[5] = {0xF0,0xC4, 0x00, 0x00, 0x34};
   //uint8_t stopbuf[5] = {0xF0,0xC4, 0x00, 0xC0, 0xF4};
   //uint8_t stopbuf[5] = {0xF0,0xC4, 0x00, 0xF1, 0xC5};
   //for (int i=0 ; i<20; ++i)
-    s.writeFrame(stopbuf, 5);
+    s.write(stopbuf, 5);
 
   printf("sc: stopped all transmissions\n");
   try{
-  read_len = s.readFrame(buf, 256); // read possibly incomplete frame
+  read_len = s.read(buf, 256); // read possibly incomplete frame
     }
   catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
@@ -1812,6 +1811,4 @@ uint32_t SerialProtocolBase::gen_period_sensor_req(uint8_t* buf, const uint8_t s
   printf("sc: reflushed %lu chars\n", read_len);
 
 */
-
-
 }

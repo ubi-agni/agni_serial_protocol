@@ -47,12 +47,9 @@ public:
 	void setVerbose(bool verb) { verbose = verb; }
 	void connect(const std::string &sDevice);
 	void disconnect();
-  void flush();
-	size_t readFrame (uint8_t *buf, size_t len);
-	size_t writeFrame (const uint8_t *buf, size_t len);
-
-private:
-	//void sync(unsigned char buf[]) const;
+	void flush();
+	size_t read (uint8_t *buf, size_t len);
+	size_t write (const uint8_t *buf, size_t len);
 
 private:
 	struct termios oldtio,newtio;

@@ -123,7 +123,7 @@ void SerialCom::disconnect()
 	close(fd);
 }
 
-size_t SerialCom::readFrame(uint8_t *buf, size_t len)
+size_t SerialCom::read(uint8_t *buf, size_t len)
 {
 	if (verbose)
 		printf("sc: trying to read %lu bytes\n", len);
@@ -147,7 +147,7 @@ size_t SerialCom::readFrame(uint8_t *buf, size_t len)
 		// read a maximum of len bytes into buf (actual read count is in res)
 		if (verbose)
 			printf("sc: reading %lu bytes\n", len - index);
-		res = read(fd, buf + index, len - index);
+		res = ::read(fd, buf + index, len - index);
 		if (verbose)
 			printf("sc: read result %d \n", res);
 		if (res == 0)  // zero bytes read (after successful pselect) indicates disconnected device
@@ -161,7 +161,7 @@ size_t SerialCom::readFrame(uint8_t *buf, size_t len)
 	return index;
 }
 
-size_t SerialCom::writeFrame(const uint8_t *buf, size_t len)
+size_t SerialCom::write(const uint8_t *buf, size_t len)
 {
 	if (!connected) throw std::runtime_error("sc: not connected to write");
 
@@ -174,7 +174,7 @@ size_t SerialCom::writeFrame(const uint8_t *buf, size_t len)
 			printf("%x ", buf[i]);
 		printf("\n");
 	}
-	ssize_t res = write(fd, buf, len);
+	ssize_t res = ::write(fd, buf, len);
 	if (res < 0)
 		throw std::runtime_error(strerror(errno));
 	if (verbose)
@@ -188,7 +188,7 @@ void SerialCom::flush()
 	unsigned char buf[256];
 	size_t read_len;
 	try{
-		read_len = readFrame(buf, 256); // read possibly incomplete frame
+		read_len = read(buf, 256); // read possibly incomplete frame
 	}
 	catch (const std::exception &e) {
 		std::cerr << e.what() << std::endl;
