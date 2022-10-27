@@ -1034,15 +1034,7 @@ void SerialProtocolBase::trigger(const uint8_t mode, const uint8_t sen_id)
 
 void SerialProtocolBase::update()
 {
-  try
-  {
-    read(throw_at_timeout);
-  }
-  catch (const std::exception& e)
-  {
-    std::cerr << e.what() << std::endl;
-    throw std::runtime_error("");
-  }
+  read(throw_at_timeout);
 }
 
 void SerialProtocolBase::publish()
@@ -1526,7 +1518,7 @@ void SerialProtocolBase::read(bool local_throw_at_timeout)
               << std::hex << (int)read_buf[4] << " 0x" << std::hex << (int)read_buf[5] << " 0x" << std::hex
               << (int)read_buf[6] << std::endl;
 
-    throw std::runtime_error("");
+    throw;
   }
 }
 
