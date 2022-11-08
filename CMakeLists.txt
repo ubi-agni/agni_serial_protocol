@@ -4,16 +4,19 @@ project (agni_serial_protocol)
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
-find_package(catkin QUIET COMPONENTS
-  roscpp
-  sensor_msgs
-  std_msgs
-  tactile_msgs
-  message_generation
-)
+## Optionally find catkin
+#catkin_lint: ignore_once missing_required
+find_package(catkin QUIET)
+## If found: require all ROS dependencies
+if(catkin_FOUND)
+  find_package(catkin REQUIRED COMPONENTS
+    roscpp
+    sensor_msgs
+    std_msgs
+    tactile_msgs
+    message_generation
+  )
+endif()
 
 find_package(Boost 1.38 REQUIRED COMPONENTS system program_options)
 
