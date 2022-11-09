@@ -111,7 +111,6 @@ void SerialCom::connect(const std::string &sDevice)
 	FD_SET (fd,&fdset);
 
 	connected = true;
-  flush();
 }
 
 void SerialCom::disconnect()
