@@ -53,16 +53,8 @@ SerialCom::~SerialCom() {
 
 void SerialCom::setTimeOut(unsigned int msec)
 {
-	if (msec >= 1000)
-	{
-		timeout.tv_sec = msec/1000;
-		timeout.tv_nsec = (msec%1000) * 1e6;
-	}
-	else
-	{
-		timeout.tv_sec = 0;
-		timeout.tv_nsec = msec * 1e6;
-	}
+	timeout.tv_sec = msec / 1000;
+	timeout.tv_nsec = (msec % 1000) * 1e6;
 }
 
 void SerialCom::connect(const std::string &sDevice)
