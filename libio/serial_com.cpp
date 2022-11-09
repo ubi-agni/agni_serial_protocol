@@ -192,7 +192,7 @@ void SerialCom::flush(const std::chrono::milliseconds &timeout)
 	catch (const std::exception &e) {
 		std::cerr << e.what() << std::endl;
 	}
-	if (now >= deadline)
+	if (len == sizeof(buf))
 		throw std::runtime_error("Device didn't stop streaming. Try to disconnect and reconnect.");
 }
 
