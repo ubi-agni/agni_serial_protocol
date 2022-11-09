@@ -186,15 +186,15 @@ size_t SerialCom::write(const uint8_t *buf, size_t len)
 void SerialCom::flush()
 {
 	unsigned char buf[256];
-	size_t read_len;
+	size_t len = sizeof(buf);
 	try{
-		read_len = read(buf, 256); // read possibly incomplete frame
+		// read remaining buffer
+		while (len == sizeof(buf))
+			len = read(buf, sizeof(buf));
 	}
 	catch (const std::exception &e) {
 		std::cerr << e.what() << std::endl;
 	}
-	if (verbose)
-		printf("sc: flushed %lu chars\n", read_len);
 }
 
 }
