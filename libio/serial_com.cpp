@@ -182,18 +182,26 @@ size_t SerialCom::write(const uint8_t *buf, size_t len)
 	return res;
 }
 
-void SerialCom::flush()
+void SerialCom::flush(const std::chrono::milliseconds &timeout)
 {
 	unsigned char buf[256];
 	size_t len = sizeof(buf);
-	try{
+	auto now = std::chrono::steady_clock::now();
+	auto deadline = now + timeout;
+	try
+	{
 		// read remaining buffer
-		while (len == sizeof(buf))
+		while (len == sizeof(buf) && now < deadline)
+		{
 			len = read(buf, sizeof(buf));
+			now = std::chrono::steady_clock::now();
+		}
 	}
 	catch (const std::exception &e) {
 		std::cerr << e.what() << std::endl;
 	}
+	if (now >= deadline)
+		throw std::runtime_error("Device didn't stop streaming. Try to disconnect and reconnect.");
 }
 
 }

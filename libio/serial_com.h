@@ -29,7 +29,7 @@
 #include <stdint.h>
 #include <exception>
 #include <string>
-
+#include <chrono>
 
 namespace serial_protocol {
 class SerialCom
@@ -47,7 +47,7 @@ public:
 	void setVerbose(bool verb) { verbose = verb; }
 	void connect(const std::string &sDevice);
 	void disconnect();
-	void flush();
+	void flush(const std::chrono::milliseconds &timeout = std::chrono::seconds(1));
 	size_t read (uint8_t *buf, size_t len);
 	size_t write (const uint8_t *buf, size_t len);
 
