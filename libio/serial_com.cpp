@@ -193,7 +193,7 @@ void SerialCom::flush(const std::chrono::milliseconds &timeout)
 		std::cerr << e.what() << std::endl;
 	}
 	if (len == sizeof(buf))
-		throw std::runtime_error("Device didn't stop streaming. Try to disconnect and reconnect.");
+		throw std::runtime_error("flush() failed. Device is still streaming.");
 }
 
 }
